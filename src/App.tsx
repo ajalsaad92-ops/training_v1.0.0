@@ -51,6 +51,7 @@ const AppRoutes = () => {
 
   useEffect(() => {
     fetch("/api/ping").then(r => r.json()).then(j => setServerOk(j.ok === true)).catch(() => setServerOk(false));
+    startScheduler();
   }, []);
 
   if (loading) return <div className="h-screen w-full flex items-center justify-center"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>;
