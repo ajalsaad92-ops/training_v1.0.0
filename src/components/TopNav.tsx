@@ -77,21 +77,24 @@ const TopNav = () => {
               {unread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-fuchsia-500 text-white text-[9px] flex items-center justify-center font-bold animate-pulse">{unread}</span>}
             </button>
             {notifOpen && (
-              <div className="absolute top-12 right-0 w-[min(20rem,calc(100vw-1.5rem))] aurora-glass border border-white/15 rounded-2xl shadow-2xl overflow-hidden z-50 animate-slide-down" dir="rtl">
-                <div className="px-4 py-2.5 border-b border-white/10 text-xs font-bold text-white">الإشعارات ({unread})</div>
-                <div className="max-h-72 overflow-y-auto">
-                  {notifications.length ? notifications.slice(0, 8).map(n => (
-                    <button key={n.id} onClick={() => {
-                      if (!n.is_read) { localDb.notifications.update(n.id, { is_read: true }); refetch(); }
-                      setNotifOpen(false);
-                      if (n.link) navigate(n.link);
-                    }} className={`w-full text-right px-4 py-2.5 border-b border-white/5 hover:bg-white/10 transition-colors ${!n.is_read ? "bg-white/5" : ""}`}>
-                      <p className="text-xs text-white">{n.message}</p>
-                      <p className="text-[9px] text-white/50 mt-0.5">{n.date}</p>
-                    </button>
-                  )) : <div className="py-6 text-center text-white/50 text-xs">لا توجد إشعارات</div>}
+              <>
+                <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setNotifOpen(false)} />
+                <div className="fixed md:absolute top-16 md:top-12 right-3 md:right-0 left-3 md:left-auto md:w-80 max-h-[70vh] aurora-glass border border-white/15 rounded-2xl shadow-2xl overflow-hidden z-50 animate-slide-down" dir="rtl">
+                  <div className="px-4 py-2.5 border-b border-white/10 text-xs font-bold text-white">الإشعارات ({unread})</div>
+                  <div className="max-h-[60vh] overflow-y-auto">
+                    {notifications.length ? notifications.slice(0, 8).map(n => (
+                      <button key={n.id} onClick={() => {
+                        if (!n.is_read) { localDb.notifications.update(n.id, { is_read: true }); refetch(); }
+                        setNotifOpen(false);
+                        if (n.link) navigate(n.link);
+                      }} className={`w-full text-right px-4 py-2.5 border-b border-white/5 hover:bg-white/10 transition-colors ${!n.is_read ? "bg-white/5" : ""}`}>
+                        <p className="text-xs text-white">{n.message}</p>
+                        <p className="text-[9px] text-white/50 mt-0.5">{n.date}</p>
+                      </button>
+                    )) : <div className="py-6 text-center text-white/50 text-xs">لا توجد إشعارات</div>}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
