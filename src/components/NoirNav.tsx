@@ -66,7 +66,7 @@ const NoirNav = () => {
               {unread > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
             </button>
             {notifOpen && (
-              <div className="absolute top-12 left-0 w-80 bg-neutral-950 border border-amber-200/15 rounded-2xl shadow-2xl shadow-amber-500/5 overflow-hidden z-50 animate-slide-down" dir="rtl">
+              <div className="absolute top-12 right-0 w-[min(20rem,calc(100vw-1.5rem))] bg-neutral-950 border border-amber-200/15 rounded-2xl shadow-2xl shadow-amber-500/5 overflow-hidden z-50 animate-slide-down" dir="rtl">
                 <div className="px-5 py-3 border-b border-amber-200/10 noir-display text-xs uppercase tracking-[0.3em] text-amber-200/70">Notifications</div>
                 <div className="max-h-72 overflow-y-auto">
                   {notifications.length ? notifications.slice(0, 8).map(n => (
