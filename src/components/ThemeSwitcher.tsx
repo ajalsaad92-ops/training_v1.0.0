@@ -6,8 +6,11 @@ const ThemeSwitcher = () => {
   const { theme, setTheme } = useUITheme();
   const [open, setOpen] = useState(false);
 
+  // Lift above the noir floating dock so they don't overlap
+  const positionClass = theme === "noir" ? "fixed bottom-24 right-4 z-[60]" : "fixed bottom-5 right-5 z-[60]";
+
   return (
-    <div className="fixed bottom-5 right-5 z-[60]">
+    <div className={positionClass}>
       {open && (
         <div className="mb-3 w-72 rounded-2xl bg-card border border-border shadow-2xl p-3 animate-scale-in" dir="rtl">
           <p className="text-xs font-bold text-foreground mb-2 px-1">اختر تجربة التصميم</p>
