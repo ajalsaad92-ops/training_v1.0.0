@@ -80,7 +80,7 @@ const Reports = () => {
     if (rows.length === 0) return toast({ title: "لا توجد بيانات للطباعة", variant: "destructive" });
     printReport({
       template, title: reportTitle, source: src, rows, columns, dateFrom, dateTo,
-      preparedBy: user?.user_metadata?.name || user?.email || "—",
+      preparedBy: user?.name || "—",
     });
   };
 
@@ -205,7 +205,7 @@ const Reports = () => {
               <div className="flex-1" />
               <Button size="sm" variant="outline" onClick={handleExportExcel} className="gap-2"><FileSpreadsheet className="w-4 h-4" />Excel</Button>
               <Button size="sm" variant="outline" onClick={handleExportPDF} className="gap-2"><FileText className="w-4 h-4" />PDF</Button>
-              <Button size="sm" variant="outline" onClick={() => downloadHtml({ template, title: reportTitle, source: src, rows, columns, dateFrom, dateTo, preparedBy: user?.email || "—" })} className="gap-2"><Download className="w-4 h-4" />HTML</Button>
+              <Button size="sm" variant="outline" onClick={() => downloadHtml({ template, title: reportTitle, source: src, rows, columns, dateFrom, dateTo, preparedBy: user?.name || "—" })} className="gap-2"><Download className="w-4 h-4" />HTML</Button>
               <Button size="sm" onClick={handlePrint} className="gap-2"><Printer className="w-4 h-4" />طباعة</Button>
               <Button size="sm" variant="secondary" onClick={() => setScheduleOpen(true)} className="gap-2"><Clock className="w-4 h-4" />جدولة</Button>
             </div>
