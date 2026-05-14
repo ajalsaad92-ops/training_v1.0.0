@@ -164,11 +164,11 @@ export const REPORT_SOURCES: Record<ReportSourceKey, ReportSource> = {
     description: "كل المهام الموكّلة والروتينية",
     dateField: "created_at",
     fetch: () => {
-      const profiles = localDb.profiles.getAll();
+      const profiles = localDb.profiles.getAll() as Array<{ id: string; name: string }>;
       const tasks = localDb.tasks.getAll();
       return tasks.map((t: Record<string, unknown>) => {
-        const a = profiles.find((p: Record<string, unknown>) => p.id === t.assigned_to);
-        const b = profiles.find((p: Record<string, unknown>) => p.id === t.assigned_by);
+        const a = profiles.find((p) => p.id === t.assigned_to);
+        const b = profiles.find((p) => p.id === t.assigned_by);
         return { ...t, assigned_to_name: a?.name || "—", assigned_by_name: b?.name || "—" };
       });
     },

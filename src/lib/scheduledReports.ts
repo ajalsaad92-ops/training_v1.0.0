@@ -67,7 +67,7 @@ export function tickScheduledReports(): number {
   items.forEach((item) => {
     if (isDue(item, now)) {
       const freqAr = ({ daily: "اليومي", weekly: "الأسبوعي", monthly: "الشهري" } as const)[item.frequency];
-      localDb.notifications.add({
+      localDb.notifications.insert({
         user_id: null,
         message: `جاهز للتوليد: التقرير ${freqAr} «${item.name}»`,
         type: "info",
