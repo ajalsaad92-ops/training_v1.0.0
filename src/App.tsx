@@ -95,10 +95,12 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
-          <AppRoutes />
-          <ErrorMonitor />
-        </BrowserRouter>
+        <UIThemeProvider>
+          <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+            <AppRoutes />
+            <ErrorMonitor />
+          </BrowserRouter>
+        </UIThemeProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
