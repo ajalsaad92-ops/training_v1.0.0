@@ -7,7 +7,8 @@ import AppSidebar from "@/components/AppSidebar";
 import TopNav from "@/components/TopNav";
 import NoirNav from "@/components/NoirNav";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
-import { Loader2, Menu, X, Bell, Check, Info, AlertTriangle } from "lucide-react";
+import { useErrorMonitorCount, openErrorMonitor } from "@/hooks/useErrorMonitor";
+import { Loader2, Menu, X, Bell, Check, Info, AlertTriangle, Bug } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 const Layout = () => {
