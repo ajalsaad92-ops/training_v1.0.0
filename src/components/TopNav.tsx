@@ -77,7 +77,7 @@ const TopNav = () => {
               {unread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-fuchsia-500 text-white text-[9px] flex items-center justify-center font-bold animate-pulse">{unread}</span>}
             </button>
             {notifOpen && (
-              <div className="absolute top-12 left-0 w-80 aurora-glass border border-white/15 rounded-2xl shadow-2xl overflow-hidden z-50 animate-slide-down" dir="rtl">
+              <div className="absolute top-12 right-0 w-[min(20rem,calc(100vw-1.5rem))] aurora-glass border border-white/15 rounded-2xl shadow-2xl overflow-hidden z-50 animate-slide-down" dir="rtl">
                 <div className="px-4 py-2.5 border-b border-white/10 text-xs font-bold text-white">الإشعارات ({unread})</div>
                 <div className="max-h-72 overflow-y-auto">
                   {notifications.length ? notifications.slice(0, 8).map(n => (
