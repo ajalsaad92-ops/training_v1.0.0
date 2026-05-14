@@ -20,6 +20,7 @@ const Layout = () => {
   const { data: notifications, refetch: refetchNotifications } = useNotifications();
   const notifRef = useRef<HTMLDivElement>(null);
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const errMon = useErrorMonitorCount();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
