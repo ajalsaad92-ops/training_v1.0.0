@@ -78,15 +78,48 @@ const Layout = () => {
   // === Classic theme: original sidebar ===
   return (
     <div className="flex h-screen w-full overflow-hidden">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-sidebar text-sidebar-foreground flex items-center justify-between px-4 py-3 md:hidden">
-        <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-1">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-sidebar text-sidebar-foreground flex items-center justify-between px-4 py-3 md:hidden" ref={notifRef}>
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-1 order-3">
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+        <h1 className="font-bold text-sm text-sidebar-accent-foreground order-2">نظام التدريب</h1>
+        <button onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); }} className="relative p-1 order-1">
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
         </button>
-        <h1 className="font-bold text-sm text-sidebar-accent-foreground">نظام التدريب</h1>
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-1">
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {notifOpen && (
+          <div className="absolute top-full right-2 left-2 mt-1 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-slide-down md:hidden" dir="rtl">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
+              <span className="text-sm font-bold text-foreground">الإشعارات ({unreadCount})</span>
+              {unreadCount > 0 && (
+                <button onClick={markAllRead} className="text-xs text-primary hover:underline flex items-center gap-1"><Check className="w-3 h-3" />تعليم الكل</button>
+              )}
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {errMon.total > 0 && (
+                <button type="button" onClick={() => { setNotifOpen(false); openErrorMonitor(); }}
+                  className="w-full text-right flex items-start gap-3 px-4 py-3 border-b border-border/50 bg-destructive/5 hover:bg-destructive/10">
+                  <Bug className={`w-4 h-4 shrink-0 mt-0.5 ${errMon.errorCount > 0 ? "text-destructive" : "text-warning"}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">مراقب الأخطاء — {errMon.errorCount} خطأ، {errMon.warnCount} تحذير</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">انقر للفتح</p>
+                  </div>
+                </button>
+              )}
+              {notifications.length > 0 ? notifications.map(n => (
+                <button key={n.id} type="button" onClick={() => openNotification(n)}
+                  className={`w-full text-right flex items-start gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/40 ${!n.is_read ? "bg-primary/5" : ""}`}>
+                  {notifIcon(n.type)}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${!n.is_read ? "font-semibold text-foreground" : "text-foreground"}`}>{n.message}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{n.date}</p>
+                  </div>
+                  {!n.is_read && <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+                </button>
+              )) : (errMon.total === 0 && <div className="py-8 text-center text-muted-foreground text-sm">لا توجد إشعارات</div>)}
+            </div>
+          </div>
+        )}
       </div>
 
       {mobileMenuOpen && <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setMobileMenuOpen(false)} />}
