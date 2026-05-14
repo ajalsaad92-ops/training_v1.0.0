@@ -66,21 +66,24 @@ const NoirNav = () => {
               {unread > 0 && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
             </button>
             {notifOpen && (
-              <div className="absolute top-12 right-0 w-[min(20rem,calc(100vw-1.5rem))] bg-neutral-950 border border-amber-200/15 rounded-2xl shadow-2xl shadow-amber-500/5 overflow-hidden z-50 animate-slide-down" dir="rtl">
-                <div className="px-5 py-3 border-b border-amber-200/10 noir-display text-xs uppercase tracking-[0.3em] text-amber-200/70">Notifications</div>
-                <div className="max-h-72 overflow-y-auto">
-                  {notifications.length ? notifications.slice(0, 8).map(n => (
-                    <button key={n.id} onClick={() => {
-                      if (!n.is_read) { localDb.notifications.update(n.id, { is_read: true }); refetch(); }
-                      setNotifOpen(false);
-                      if (n.link) navigate(n.link);
-                    }} className={`w-full text-right px-5 py-3 border-b border-amber-200/5 hover:bg-amber-200/5 transition-colors ${!n.is_read ? "bg-amber-200/[0.03]" : ""}`}>
-                      <p className="text-xs text-amber-50/90">{n.message}</p>
-                      <p className="text-[9px] text-amber-200/40 mt-1 tracking-wider">{n.date}</p>
-                    </button>
-                  )) : <div className="py-6 text-center text-amber-200/40 text-xs italic">— silence —</div>}
+              <>
+                <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-md animate-fade-in" onClick={() => setNotifOpen(false)} />
+                <div className="fixed md:absolute top-16 md:top-12 right-3 md:right-0 left-3 md:left-auto md:w-80 max-h-[70vh] bg-neutral-950 border border-amber-200/20 rounded-2xl shadow-2xl shadow-amber-500/10 overflow-hidden z-50 animate-slide-down" dir="rtl">
+                  <div className="px-5 py-3 border-b border-amber-200/10 noir-display text-xs uppercase tracking-[0.3em] text-amber-200/70">Notifications ({unread})</div>
+                  <div className="max-h-[60vh] overflow-y-auto">
+                    {notifications.length ? notifications.slice(0, 8).map(n => (
+                      <button key={n.id} onClick={() => {
+                        if (!n.is_read) { localDb.notifications.update(n.id, { is_read: true }); refetch(); }
+                        setNotifOpen(false);
+                        if (n.link) navigate(n.link);
+                      }} className={`w-full text-right px-5 py-3 border-b border-amber-200/5 hover:bg-amber-200/5 transition-colors ${!n.is_read ? "bg-amber-200/[0.03]" : ""}`}>
+                        <p className="text-xs text-amber-50/90">{n.message}</p>
+                        <p className="text-[9px] text-amber-200/40 mt-1 tracking-wider">{n.date}</p>
+                      </button>
+                    )) : <div className="py-6 text-center text-amber-200/40 text-xs italic">— silence —</div>}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
