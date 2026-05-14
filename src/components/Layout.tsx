@@ -111,6 +111,16 @@ const Layout = () => {
                 )}
               </div>
               <div className="max-h-72 overflow-y-auto">
+                {errMon.total > 0 && (
+                  <button type="button" onClick={() => { setNotifOpen(false); openErrorMonitor(); }}
+                    className="w-full text-right flex items-start gap-3 px-4 py-3 border-b border-border/50 bg-destructive/5 hover:bg-destructive/10 transition-colors">
+                    <Bug className={`w-4 h-4 shrink-0 mt-0.5 ${errMon.errorCount > 0 ? "text-destructive" : "text-warning"}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">مراقب الأخطاء — {errMon.errorCount} خطأ، {errMon.warnCount} تحذير</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">انقر للفتح</p>
+                    </div>
+                  </button>
+                )}
                 {notifications.length > 0 ? notifications.map(n => (
                   <button key={n.id} type="button" onClick={() => openNotification(n)}
                     className={`w-full text-right flex items-start gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/40 transition-colors ${!n.is_read ? "bg-primary/5" : ""} ${n.link ? "cursor-pointer" : "cursor-default"}`}>
@@ -121,7 +131,7 @@ const Layout = () => {
                     </div>
                     {!n.is_read && <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
                   </button>
-                )) : <div className="py-8 text-center text-muted-foreground text-sm">لا توجد إشعارات</div>}
+                )) : (errMon.total === 0 && <div className="py-8 text-center text-muted-foreground text-sm">لا توجد إشعارات</div>)}
               </div>
             </div>
           )}
