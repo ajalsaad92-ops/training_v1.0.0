@@ -101,30 +101,15 @@ const ErrorMonitor = () => {
   const errorCount = errors.filter(e => e.type === "error" || e.type === "unhandled_promise").length;
   const warnCount = errors.filter(e => e.type === "warning").length;
 
-  if (!isOpen && errors.length === 0) return null;
+  // Broadcast counts so other components (e.g. notifications) can show a badge
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("error-monitor-count", {
+      detail: { errorCount, warnCount, total: errorCount + warnCount },
+    }));
+  }, [errorCount, warnCount]);
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-4 right-4 z-[9999] w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 no-print ${
-          errorCount > 0
-            ? "bg-destructive text-destructive-foreground animate-pulse-red"
-            : warnCount > 0
-            ? "bg-warning text-warning-foreground animate-pulse-yellow"
-            : "bg-muted text-muted-foreground"
-        }`}
-        title={`${errorCount} أخطاء، ${warnCount} تحذيرات`}
-      >
-        <Bug className="w-5 h-5" />
-        {(errorCount > 0 || warnCount > 0) && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-foreground text-background text-[10px] flex items-center justify-center font-bold">
-            {errorCount + warnCount}
-          </span>
-        )}
-      </button>
-    );
-  }
+  // No floating button — opened only via Settings or notifications dropdown
+  if (!isOpen) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9999] font-mono text-xs no-print" dir="ltr">
