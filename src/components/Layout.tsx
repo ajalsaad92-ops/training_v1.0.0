@@ -1,13 +1,18 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useSupabaseData";
+import { useUITheme } from "@/contexts/UIThemeContext";
 import { localDb } from "@/lib/localStore";
 import AppSidebar from "@/components/AppSidebar";
+import TopNav from "@/components/TopNav";
+import NoirNav from "@/components/NoirNav";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { Loader2, Menu, X, Bell, Check, Info, AlertTriangle } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 const Layout = () => {
   const { user, loading } = useAuth();
+  const { theme } = useUITheme();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -26,30 +31,49 @@ const Layout = () => {
   }, [notifOpen]);
 
   const markAllRead = () => {
-    const unread = notifications.filter((n) => !n.is_read);
-    unread.forEach((n) => localDb.notifications.update(n.id, { is_read: true }));
+    notifications.filter((n) => !n.is_read).forEach((n) => localDb.notifications.update(n.id, { is_read: true }));
     refetchNotifications();
   };
 
   const openNotification = (n: { id: string; is_read?: boolean; link?: string | null }) => {
-    if (!n.is_read) {
-      localDb.notifications.update(n.id, { is_read: true });
-      refetchNotifications();
-    }
-    setNotifOpen(false);
-    setMobileMenuOpen(false);
+    if (!n.is_read) { localDb.notifications.update(n.id, { is_read: true }); refetchNotifications(); }
+    setNotifOpen(false); setMobileMenuOpen(false);
     if (n.link) navigate(n.link);
   };
 
-  const notifIcon = (type: string) => {
-    if (type === "warning") return <AlertTriangle className="w-4 h-4 text-warning shrink-0" />;
-    return <Info className="w-4 h-4 text-primary shrink-0" />;
-  };
+  const notifIcon = (type: string) => type === "warning"
+    ? <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+    : <Info className="w-4 h-4 text-primary shrink-0" />;
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+
+  // === Aurora theme: top navigation ===
+  if (theme === "aurora") {
+    return (
+      <div className="min-h-screen w-full aurora-bg flex flex-col">
+        <TopNav />
+        <main className="flex-1 min-w-0 relative animate-fade-in">
+          <Outlet />
+        </main>
+        <ThemeSwitcher />
+      </div>
+    );
   }
 
+  // === Noir theme: editorial top + floating dock ===
+  if (theme === "noir") {
+    return (
+      <div className="min-h-screen w-full noir-bg flex flex-col">
+        <NoirNav />
+        <main className="flex-1 min-w-0 relative animate-fade-in pb-28">
+          <Outlet />
+        </main>
+        <ThemeSwitcher />
+      </div>
+    );
+  }
+
+  // === Classic theme: original sidebar ===
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <div className="fixed top-0 left-0 right-0 z-50 bg-sidebar text-sidebar-foreground flex items-center justify-between px-4 py-3 md:hidden">
@@ -86,12 +110,8 @@ const Layout = () => {
               </div>
               <div className="max-h-72 overflow-y-auto">
                 {notifications.length > 0 ? notifications.map(n => (
-                  <button
-                    key={n.id}
-                    type="button"
-                    onClick={() => openNotification(n)}
-                    className={`w-full text-right flex items-start gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/40 transition-colors ${!n.is_read ? "bg-primary/5" : ""} ${n.link ? "cursor-pointer" : "cursor-default"}`}
-                  >
+                  <button key={n.id} type="button" onClick={() => openNotification(n)}
+                    className={`w-full text-right flex items-start gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/40 transition-colors ${!n.is_read ? "bg-primary/5" : ""} ${n.link ? "cursor-pointer" : "cursor-default"}`}>
                     {notifIcon(n.type)}
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm ${!n.is_read ? "font-semibold text-foreground" : "text-foreground"}`}>{n.message}</p>
@@ -99,9 +119,7 @@ const Layout = () => {
                     </div>
                     {!n.is_read && <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
                   </button>
-                )) : (
-                  <div className="py-8 text-center text-muted-foreground text-sm">لا توجد إشعارات</div>
-                )}
+                )) : <div className="py-8 text-center text-muted-foreground text-sm">لا توجد إشعارات</div>}
               </div>
             </div>
           )}
@@ -109,6 +127,7 @@ const Layout = () => {
 
         <Outlet />
       </main>
+      <ThemeSwitcher />
     </div>
   );
 };
