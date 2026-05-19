@@ -120,6 +120,14 @@ let store: StoreData | null = null;
 function getStore(): StoreData {
   if (store) return store;
   try {
+    const currentVer = localStorage.getItem(SEED_VERSION_KEY);
+    if (currentVer !== SEED_VERSION) {
+      // Force re-seed with fresh data
+      store = getDefaultStore();
+      localStorage.setItem(SEED_VERSION_KEY, SEED_VERSION);
+      saveStore();
+      return store;
+    }
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       store = JSON.parse(saved);
@@ -127,7 +135,9 @@ function getStore(): StoreData {
     }
   } catch { /* ignore parse errors */ }
   store = getDefaultStore();
+  localStorage.setItem(SEED_VERSION_KEY, SEED_VERSION);
   saveStore();
+
   return store;
 }
 
