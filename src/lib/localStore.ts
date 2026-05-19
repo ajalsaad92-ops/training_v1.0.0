@@ -266,7 +266,7 @@ export function resetStore() {
 function getAll<T>(key: keyof StoreData): T[] {
   const s = getStore();
   if (!Array.isArray(s[key])) {
-    (s as Record<string, unknown>)[key as string] = [];
+    (s as unknown as Record<string, unknown>)[key as string] = [];
     saveStore();
   }
   return s[key] as T[];
