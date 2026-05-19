@@ -265,6 +265,7 @@ const Reports = () => {
             <ChartCard title="حالات المهام" data={exec.taskStatus} type="bar" />
             <ChartCard title="الموظفون حسب القسم" data={exec.byDept} type="bar" />
             <ChartCard title="طلبات HR" data={exec.hrStatus} type="pie" />
+            <ChartCard title="التزام المحافظات" data={exec.govCompliance} type="bar" />
           </div>
         </TabsContent>
 

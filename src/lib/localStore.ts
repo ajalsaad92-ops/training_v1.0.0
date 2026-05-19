@@ -15,6 +15,8 @@ export type TaskComment = any;
 export type GovernorateTraining = any;
 export type FollowUpRecord = any;
 export type FollowUpNotification = any;
+export type TrainingPlanImport = any;
+export type WeekScheduleEntry = any;
 
 export interface UserProfile {
   id: string;
@@ -155,6 +157,9 @@ const defaultGovernorateTraining: GovernorateTraining[] = [
   { id: "gt-12", governorate: "القادسية", course_name: "دورة إدارة الوقت", domain: "إدارية", course_hours: 5, track: "المسار الأول", nominees_count: 14, planned_start_date: "2026-03-28", planned_end_date: "2026-03-31", actual_start_date: "2026-03-28", actual_end_date: "2026-03-31", status: "completed", compliance: "on_track", notes: "", created_by: "emp-3", created_at: "2026-03-28T08:00:00Z", updated_at: "2026-03-31T14:00:00Z" },
   { id: "gt-13", governorate: "القادسية", course_name: "دورة الإدارة الإلكترونية / Excel", domain: "تقنية المعلومات", course_hours: 15, track: "المسار الثاني", nominees_count: 32, planned_start_date: "2026-05-11", planned_end_date: "2026-05-18", actual_start_date: "2026-05-11", actual_end_date: null, status: "in_progress", compliance: "on_track", notes: "", created_by: "emp-1", created_at: "2026-05-11T08:00:00Z", updated_at: "2026-05-15T10:00:00Z" },
   { id: "gt-14", governorate: "القادسية", course_name: "دورة تحليل المشكلات", domain: "إدارية", course_hours: 6, track: "المسار الأول", nominees_count: 12, planned_start_date: "2026-06-08", planned_end_date: "2026-06-11", actual_start_date: null, actual_end_date: null, status: "planned", compliance: "not_started", notes: "", created_by: "emp-3", created_at: "2026-05-20T08:00:00Z", updated_at: "2026-05-20T08:00:00Z" },
+  { id: "gt-15", governorate: "البصرة", course_name: "دورة إدارة المشاريع", domain: "إدارية", course_hours: 12, track: "المسار الأول", nominees_count: 20, planned_start_date: "2026-04-01", planned_end_date: "2026-04-06", actual_start_date: "2026-04-01", actual_end_date: "2026-04-06", status: "completed", compliance: "on_track", notes: "", created_by: "emp-2", created_at: "2026-04-01T08:00:00Z", updated_at: "2026-04-06T14:00:00Z" },
+  { id: "gt-16", governorate: "البصرة", course_name: "دورة الأمن السيبراني", domain: "تقنية المعلومات", course_hours: 15, track: "المسار الثاني", nominees_count: 25, planned_start_date: "2026-04-08", planned_end_date: "2026-04-15", actual_start_date: "2026-04-10", actual_end_date: null, status: "in_progress", compliance: "delayed", notes: "تأخر بدء الدورة يومين", created_by: "emp-2", created_at: "2026-04-08T08:00:00Z", updated_at: "2026-04-12T10:00:00Z" },
+  { id: "gt-17", governorate: "البصرة", course_name: "دورة مهارات التفاوض", domain: "قيادية", course_hours: 8, track: "المسار الأول", nominees_count: 18, planned_start_date: "2026-06-01", planned_end_date: "2026-06-05", actual_start_date: null, actual_end_date: null, status: "planned", compliance: "not_started", notes: "", created_by: "emp-2", created_at: "2026-05-20T08:00:00Z", updated_at: "2026-05-20T08:00:00Z" },
 ];
 
 const defaultFollowUpRecords: FollowUpRecord[] = [
@@ -165,6 +170,23 @@ const defaultFollowUpRecords: FollowUpRecord[] = [
   { id: "fur-5", governorate_training_id: "gt-11", governorate: "النجف", course_name: "دورة تنمية الذكاء العاطفي", record_date: "2026-05-05", compliance_status: "delayed", notes: "تأخر يوم بسبب ظروف الطقس", recorded_by: "emp-3", recorded_by_name: "خالد عبدالله السعيد", created_at: "2026-05-05T10:00:00Z" },
   { id: "fur-6", governorate_training_id: "gt-13", governorate: "القادسية", course_name: "دورة الإدارة الإلكترونية / Excel", record_date: "2026-05-13", compliance_status: "on_track", notes: "الدورة تسير حسب الجدول", recorded_by: "emp-3", recorded_by_name: "خالد عبدالله السعيد", created_at: "2026-05-13T10:00:00Z" },
 ];
+
+const defaultWeekSchedules: WeekScheduleEntry[] = [
+  { id: "ws-1", governorate: "بابل", week: 1, start_date: "2026-03-01", end_date: "2026-03-07", label: "الأسبوع الأول" },
+  { id: "ws-2", governorate: "بابل", week: 2, start_date: "2026-03-08", end_date: "2026-03-14", label: "الأسبوع الثاني" },
+  { id: "ws-3", governorate: "بابل", week: 3, start_date: "2026-03-15", end_date: "2026-03-21", label: "الأسبوع الثالث" },
+  { id: "ws-4", governorate: "بابل", week: 4, start_date: "2026-03-22", end_date: "2026-03-28", label: "الأسبوع الرابع" },
+  { id: "ws-5", governorate: "بغداد", week: 1, start_date: "2026-03-15", end_date: "2026-03-21", label: "الأسبوع الأول" },
+  { id: "ws-6", governorate: "بغداد", week: 2, start_date: "2026-03-22", end_date: "2026-03-28", label: "الأسبوع الثاني" },
+  { id: "ws-7", governorate: "بغداد", week: 3, start_date: "2026-04-01", end_date: "2026-04-07", label: "الأسبوع الثالث" },
+  { id: "ws-8", governorate: "كربلاء", week: 1, start_date: "2026-03-22", end_date: "2026-03-28", label: "الأسبوع الأول" },
+  { id: "ws-9", governorate: "النجف", week: 1, start_date: "2026-04-06", end_date: "2026-04-12", label: "الأسبوع الأول" },
+  { id: "ws-10", governorate: "القادسية", week: 1, start_date: "2026-03-28", end_date: "2026-04-03", label: "الأسبوع الأول" },
+  { id: "ws-11", governorate: "البصرة", week: 1, start_date: "2026-04-01", end_date: "2026-04-07", label: "الأسبوع الأول" },
+  { id: "ws-12", governorate: "البصرة", week: 2, start_date: "2026-04-08", end_date: "2026-04-14", label: "الأسبوع الثاني" },
+];
+
+const defaultTrainingPlanImports: TrainingPlanImport[] = [];
 
 const defaultFollowUpNotifications: FollowUpNotification[] = [
   { id: "fun-1", governorate: "بابل", assigned_to: "emp-3", assigned_to_name: "خالد عبدالله السعيد", assigned_by: "emp-1", assigned_by_name: "أحمد محمد العلي", frequency: "weekly", active: true, notes: "متابعة أسبوعية لدورات بابل", created_at: "2026-03-01T08:00:00Z" },
@@ -212,6 +234,8 @@ interface StoreData {
   governorateTraining: GovernorateTraining[];
   followUpRecords: FollowUpRecord[];
   followUpNotifications: FollowUpNotification[];
+  weekSchedules: WeekScheduleEntry[];
+  trainingPlanImports: TrainingPlanImport[];
 }
 
 const getDefaultStore = (): StoreData => ({
@@ -231,6 +255,8 @@ const getDefaultStore = (): StoreData => ({
   governorateTraining: defaultGovernorateTraining,
   followUpRecords: defaultFollowUpRecords,
   followUpNotifications: defaultFollowUpNotifications,
+  weekSchedules: defaultWeekSchedules,
+  trainingPlanImports: defaultTrainingPlanImports,
 });
 
 let store: StoreData | null = null;
@@ -409,5 +435,17 @@ export const localDb = {
     insert: (n: Partial<FollowUpNotification>) => insertItem<FollowUpNotification>("followUpNotifications", { created_at: now(), ...n } as FollowUpNotification),
     update: (id: string, u: Partial<FollowUpNotification>) => updateItem<FollowUpNotification>("followUpNotifications", id, u),
     delete: (id: string) => deleteItem<FollowUpNotification>("followUpNotifications", id),
+  },
+  weekSchedules: {
+    getAll: () => getAll<WeekScheduleEntry>("weekSchedules"),
+    insert: (w: Partial<WeekScheduleEntry>) => insertItem<WeekScheduleEntry>("weekSchedules", w as WeekScheduleEntry),
+    update: (id: string, u: Partial<WeekScheduleEntry>) => updateItem<WeekScheduleEntry>("weekSchedules", id, u),
+    delete: (id: string) => deleteItem<WeekScheduleEntry>("weekSchedules", id),
+    deleteByGov: (gov: string) => { const s = getStore(); s.weekSchedules = s.weekSchedules.filter(w => w.governorate !== gov); saveStore(); },
+  },
+  trainingPlanImports: {
+    getAll: () => getAll<TrainingPlanImport>("trainingPlanImports"),
+    insert: (i: Partial<TrainingPlanImport>) => insertItem<TrainingPlanImport>("trainingPlanImports", i as TrainingPlanImport),
+    delete: (id: string) => deleteItem<TrainingPlanImport>("trainingPlanImports", id),
   },
 };

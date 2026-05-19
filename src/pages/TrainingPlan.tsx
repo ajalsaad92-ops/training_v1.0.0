@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
+import IraqMap, { type GovStats } from "@/components/IraqMap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,847 +16,917 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
-import {
-  CalendarDays, BarChart3, Plus, Search, FileSpreadsheet, MapPin, Bell,
-  Clock, ChevronLeft, ChevronRight, Pencil, Trash2,
-} from "lucide-react";
+import { CalendarDays, BarChart3, Plus, Search, FileSpreadsheet, MapPin, ChevronLeft, ChevronRight, Pencil, Trash2, Clock, ExternalLink } from "lucide-react";
 
 interface GovernorateTraining {
-  id: string;
-  governorate: string;
-  course_name: string;
-  domain: string;
-  course_hours: number;
-  track: string;
-  nominees_count: number;
-  planned_start_date: string;
-  planned_end_date: string;
-  actual_start_date: string | null;
-  actual_end_date: string | null;
-  status: string;
-  compliance: string;
-  notes: string;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
+  id: string; governorate: string; course_name: string; domain: string;
+  course_hours: number; track: string; nominees_count: number;
+  planned_start_date: string; planned_end_date: string;
+  actual_start_date: string | null; actual_end_date: string | null;
+  status: string; compliance: string; notes: string;
+  created_by: string | null; created_at: string; updated_at: string;
+}
+interface WeekSchedule {
+  id: string; governorate: string; week: number;
+  start_date: string; end_date: string; label: string;
 }
 
-interface FollowUpRecord {
-  id: string;
-  governorate_training_id: string;
-  governorate: string;
-  course_name: string;
-  record_date: string;
-  compliance_status: string;
-  notes: string;
-  recorded_by: string;
-  recorded_by_name: string;
-  created_at: string;
-}
+const statusLabels = { planned: "مخططة", in_progress: "قيد التنفيذ", completed: "مكتملة", delayed: "متأخرة" };
+const statusColors = { planned: "neutral", in_progress: "info", completed: "success", delayed: "warning" };
+const complianceLabels = { on_track: "ملتزم", delayed: "متأخر", completed: "مكتمل", not_started: "لم يبدأ" };
+const complianceColors = { on_track: "success", delayed: "warning", completed: "success", not_started: "neutral" };
+const trackLabels = { "المسار الأول": "المسار الأول / القاعة A", "المسار الثاني": "المسار الثاني / القاعة B" };
+const emptyGovForm = { governorate: "", course_name: "", domain: "", course_hours: 0, track: "المسار الأول", nominees_count: 0, planned_start_date: "", planned_end_date: "", actual_start_date: "", actual_end_date: "", status: "planned", compliance: "not_started", notes: "" };
+const emptyWeekForm = { governorate: "", week: 1, start_date: "", end_date: "", label: "" };
+const ALL_19_GOVERNORATES = ["دهوك","نينوى","أربيل","السليمانية","حلبجة","كركوك","صلاح الدين","ديالى","الأنبار","بغداد","واسط","بابل","كربلاء","النجف","القادسية","ميسان","المثنى","ذي قار","البصرة"];
 
-interface FollowUpNotification {
-  id: string;
-  governorate: string;
-  assigned_to: string;
-  assigned_to_name: string;
-  assigned_by: string;
-  assigned_by_name: string;
-  frequency: string;
-  active: boolean;
-  notes: string;
-  created_at: string;
-}
+const ARABIC_DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 
-const statusLabels: Record<string, string> = {
-  planned: "مخططة", in_progress: "قيد التنفيذ", completed: "مكتملة", delayed: "متأخرة",
-};
-const statusColors: Record<string, string> = {
-  planned: "neutral", in_progress: "info", completed: "success", delayed: "warning",
-};
-const complianceLabels: Record<string, string> = {
-  on_track: "ملتزم", delayed: "متأخر", completed: "مكتمل", not_started: "لم يبدأ",
-};
-const complianceColors: Record<string, string> = {
-  on_track: "success", delayed: "warning", completed: "success", not_started: "neutral",
-};
-const frequencyLabels: Record<string, string> = {
-  daily: "يومي", weekly: "أسبوعي", biweekly: "نصف شهري", monthly: "شهري",
-};
-const calDot: Record<string, string> = {
-  completed: "bg-success", in_progress: "bg-info", delayed: "bg-warning", planned: "bg-muted-foreground/50",
-};
+function MonthCalendar({ trainings, weekSchedules, calMonth, setCalMonth }: {
+  trainings: GovernorateTraining[];
+  weekSchedules: WeekSchedule[];
+  calMonth: Date;
+  setCalMonth: (d: Date) => void;
+}) {
+  const year = calMonth.getFullYear();
+  const month = calMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDow = firstDay.getDay();
+  const daysInMonth = lastDay.getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
 
-const emptyGovForm = {
-  governorate: "", course_name: "", domain: "", course_hours: 0, track: "المسار الأول",
-  nominees_count: 0, planned_start_date: "", planned_end_date: "",
-  actual_start_date: "", actual_end_date: "", status: "planned",
-  compliance: "not_started", notes: "",
-};
-const emptyFollowUpForm = {
-  governorate: "", course_name: "",
-  record_date: new Date().toISOString().split("T")[0],
-  compliance_status: "on_track", notes: "",
-};
-const emptyNotifForm = {
-  governorate: "", assigned_to: "", frequency: "weekly", notes: "",
-};
+  const weeks: (Date | null)[][] = [];
+  let current: (Date | null)[] = [];
+  for (let i = 0; i < startDow; i++) {
+    current.push(null);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    current.push(new Date(year, month, d));
+    if (current.length === 7) {
+      weeks.push(current);
+      current = [];
+    }
+  }
+  if (current.length > 0) {
+    while (current.length < 7) current.push(null);
+    weeks.push(current);
+  }
 
-const dayNames = ["سبت", "أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة"];
-const monthNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+  const dateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-const MonthCalendar = ({ trainings, month, onPrev, onNext }: {
-  trainings: GovernorateTraining[]; month: Date; onPrev: () => void; onNext: () => void;
-}) => {
-  const y = month.getFullYear();
-  const m = month.getMonth();
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
-  const startDow = new Date(y, m, 1).getDay();
-  const offset = (startDow + 1) % 7;
-
-  const getForDay = (d: number) => {
-    const ds = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    return trainings.filter(t => ds >= t.planned_start_date && ds <= t.planned_end_date);
+  const coursesOnDay = (day: Date) => {
+    const ds = dateStr(day);
+    return trainings.filter(t => {
+      const s = t.planned_start_date || t.actual_start_date;
+      const e = t.planned_end_date || t.actual_end_date;
+      return s && e && ds >= s && ds <= e;
+    });
   };
 
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < offset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
+  const weekOnDay = (day: Date) => {
+    const ds = dateStr(day);
+    return weekSchedules.find(w => ds >= w.start_date && ds <= w.end_date);
+  };
 
-  const weeks: (number | null)[][] = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  const statusDotColor: Record<string, string> = {
+    planned: "bg-slate-400",
+    in_progress: "bg-blue-400",
+    completed: "bg-green-400",
+    delayed: "bg-amber-400",
+  };
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const monthName = calMonth.toLocaleDateString("ar-SA", { year: "numeric", month: "long" });
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Button variant="outline" size="sm" onClick={onPrev}><ChevronRight className="w-4 h-4" /></Button>
-        <h3 className="font-bold text-foreground">{monthNames[m]} {y}</h3>
-        <Button variant="outline" size="sm" onClick={onNext}><ChevronLeft className="w-4 h-4" /></Button>
+    <div className="border rounded-lg p-3">
+      <div className="flex items-center justify-between mb-3">
+        <Button variant="ghost" size="sm" onClick={() => setCalMonth(new Date(year, month - 1, 1))}>
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+        <span className="font-semibold text-sm">{monthName}</span>
+        <Button variant="ghost" size="sm" onClick={() => setCalMonth(new Date(year, month + 1, 1))}>
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
       </div>
-      <div className="border border-border rounded-xl overflow-hidden">
-        <div className="grid grid-cols-7 bg-muted/50">
-          {dayNames.map(d => <div key={d} className="px-2 py-2 text-center text-xs font-semibold text-foreground border-b border-border">{d}</div>)}
-        </div>
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7">
-            {week.map((day, di) => {
-              if (day === null) return <div key={di} className="min-h-[72px] border-b border-l border-border bg-muted/10" />;
-              const ds = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const dt = getForDay(day);
-              const isToday = ds === todayStr;
-              return (
-                <div key={di} className={`min-h-[72px] p-1 border-b border-l border-border ${isToday ? "bg-primary/5" : "bg-card"}`}>
-                  <span className={`text-[10px] font-medium ${isToday ? "text-primary font-bold" : "text-foreground"}`}>{day}</span>
-                  <div className="mt-0.5 space-y-px">
-                    {dt.slice(0, 3).map((t, ti) => (
-                      <div key={ti} className="flex items-center gap-1" title={`${t.course_name} — ${statusLabels[t.status] || t.status}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${calDot[t.status] || "bg-muted"}`} />
-                        <span className="text-[8px] text-foreground truncate leading-tight">{t.course_name.replace("دورة ", "")}</span>
-                      </div>
+      <div className="grid grid-cols-7 gap-0 text-center text-[10px] mb-1">
+        {ARABIC_DAYS.map(d => <div key={d} className="font-medium text-muted-foreground py-1">{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-0">
+        {weeks.flatMap((week, wi) =>
+          week.map((day, di) => {
+            if (!day) {
+              const prevDay = prevMonthDays - startDow + di + 1;
+              return <div key={`${wi}-${di}`} className="h-16 border p-0.5 text-muted-foreground/30 text-[9px]">{prevDay}</div>;
+            }
+            const courses = coursesOnDay(day);
+            const wk = weekOnDay(day);
+            const isToday = dateStr(day) === new Date().toISOString().split("T")[0];
+            return (
+              <div key={`${wi}-${di}`} className={`h-16 border p-0.5 relative ${wk ? "bg-blue-50/50" : ""}`}>
+                <span className={`text-[10px] ${isToday ? "bg-primary text-primary-foreground rounded-full w-4 h-4 inline-flex items-center justify-center" : ""}`}>
+                  {day.getDate()}
+                </span>
+                {courses.length > 0 && (
+                  <div className="flex flex-wrap gap-px mt-0.5">
+                    {courses.slice(0, 4).map((c, ci) => (
+                      <span key={ci} className={`w-1.5 h-1.5 rounded-full ${statusDotColor[c.status] || "bg-slate-300"}`} title={c.course_name} />
                     ))}
-                    {dt.length > 3 && <span className="text-[7px] text-muted-foreground">+{dt.length - 3}</span>}
+                    {courses.length > 4 && <span className="text-[7px] text-muted-foreground">+{courses.length-4}</span>}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-4 text-[10px] text-muted-foreground no-print">
-        {Object.entries(calDot).map(([s, c]) => (
-          <span key={s} className="flex items-center gap-1"><span className={`w-2 h-2 rounded-full ${c}`} />{statusLabels[s]}</span>
-        ))}
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
-};
+}
 
-const TrainingPlan = () => {
+export default function TrainingPlan() {
+  const navigate = useNavigate();
+  const { has } = useUserRole();
   const { user } = useAuth();
-  const { has, isManager, userId, userName } = useUserRole();
+
   const [activeTab, setActiveTab] = useState("dashboard");
-
-  const [govTrainings, setGovTrainings] = useState<GovernorateTraining[]>([]);
-  const [followUpRecords, setFollowUpRecords] = useState<FollowUpRecord[]>([]);
-  const [followUpNotifs, setFollowUpNotifs] = useState<FollowUpNotification[]>([]);
-  const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([]);
-
-  const [calMonth, setCalMonth] = useState(() => new Date());
-  const [filterGov, setFilterGov] = useState("all");
+  const [selectedGov, setSelectedGov] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-
+  const [filterGov, setFilterGov] = useState<string | null>(null);
+  const [govTrainings, setGovTrainings] = useState<GovernorateTraining[]>([]);
+  const [weekSchedules, setWeekSchedules] = useState<WeekSchedule[]>([]);
   const [showGovForm, setShowGovForm] = useState(false);
   const [editingGov, setEditingGov] = useState<GovernorateTraining | null>(null);
   const [govForm, setGovForm] = useState(emptyGovForm);
-
-  const [showFollowUpForm, setShowFollowUpForm] = useState(false);
-  const [followUpForm, setFollowUpForm] = useState(emptyFollowUpForm);
-
-  const [showNotifForm, setShowNotifForm] = useState(false);
-  const [notifForm, setNotifForm] = useState(emptyNotifForm);
-
+  const [showWeekForm, setShowWeekForm] = useState(false);
+  const [editingWeek, setEditingWeek] = useState<WeekSchedule | null>(null);
+  const [weekForm, setWeekForm] = useState(emptyWeekForm);
+  const [calMonth, setCalMonth] = useState(new Date());
   const excelRef = useRef<HTMLInputElement>(null);
   const govExcelRef = useRef<HTMLInputElement>(null);
 
   const refreshData = useCallback(() => {
-    setGovTrainings(localDb.governorateTraining.getAll());
-    setFollowUpRecords(localDb.followUpRecords.getAll());
-    setFollowUpNotifs(localDb.followUpNotifications.getAll());
-    setProfiles(localDb.profiles.getAll());
+    setGovTrainings(localDb.governorateTraining.getAll() as GovernorateTraining[]);
+    setWeekSchedules(localDb.weekSchedules.getAll() as WeekSchedule[]);
   }, []);
 
   useEffect(() => { refreshData(); }, [refreshData]);
 
-  const governorates = useMemo(() =>
-    [...new Set(govTrainings.map(g => g.governorate))].sort((a, b) => a.localeCompare(b, "ar")),
-    [govTrainings]);
+  const governorates = useMemo(() => [...new Set(govTrainings.map(g => g.governorate))].sort(), [govTrainings]);
 
-  const filteredTrainings = useMemo(() => govTrainings.filter(t => {
-    const matchGov = filterGov === "all" || t.governorate === filterGov;
-    const matchSearch = !search || t.course_name.includes(search) || t.governorate.includes(search) || t.domain.includes(search);
-    return matchGov && matchSearch;
-  }), [govTrainings, filterGov, search]);
+  const mapStats = useMemo(() => {
+    const stats: Record<string, GovStats> = {};
+    for (const t of govTrainings) {
+      if (!stats[t.governorate]) {
+        stats[t.governorate] = { totalCourses: 0, completed: 0, inProgress: 0, delayed: 0, complianceRate: 0 };
+      }
+      stats[t.governorate].totalCourses++;
+      if (t.status === "completed") stats[t.governorate].completed++;
+      if (t.status === "in_progress") stats[t.governorate].inProgress++;
+      if (t.status === "delayed") stats[t.governorate].delayed++;
+    }
+    for (const g of Object.keys(stats)) {
+      const s = stats[g];
+      const onTrack = govTrainings.filter(t => t.governorate === g && (t.compliance === "on_track" || t.compliance === "completed")).length;
+      s.complianceRate = s.totalCourses > 0 ? Math.round((onTrack / s.totalCourses) * 100) : 0;
+    }
+    return stats;
+  }, [govTrainings]);
+
+  const filteredTrainings = useMemo(() => {
+    let list = govTrainings;
+    const govFilter = selectedGov || filterGov;
+    if (govFilter) list = list.filter(t => t.governorate === govFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(t =>
+        t.course_name.toLowerCase().includes(q) ||
+        t.governorate.toLowerCase().includes(q) ||
+        t.domain.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [govTrainings, selectedGov, filterGov, search]);
 
   const stats = useMemo(() => {
-    const d = filterGov === "all" ? govTrainings : govTrainings.filter(t => t.governorate === filterGov);
-    return {
-      total: d.length,
-      completed: d.filter(t => t.status === "completed").length,
-      inProgress: d.filter(t => t.status === "in_progress").length,
-      delayed: d.filter(t => t.status === "delayed").length,
-      totalHours: d.reduce((s, t) => s + t.course_hours, 0),
-      complianceRate: d.length > 0 ? Math.round(d.filter(t => t.compliance === "on_track" || t.compliance === "completed").length / d.length * 100) : 0,
-    };
-  }, [govTrainings, filterGov]);
+    const total = filteredTrainings.length;
+    const completed = filteredTrainings.filter(t => t.status === "completed").length;
+    const inProgress = filteredTrainings.filter(t => t.status === "in_progress").length;
+    const delayed = filteredTrainings.filter(t => t.status === "delayed").length;
+    const totalHours = filteredTrainings.reduce((s, t) => s + (t.course_hours || 0), 0);
+    const compliant = filteredTrainings.filter(t => t.compliance === "on_track" || t.compliance === "completed").length;
+    const complianceRate = total > 0 ? Math.round((compliant / total) * 100) : 0;
+    return { total, completed, inProgress, delayed, totalHours, complianceRate };
+  }, [filteredTrainings]);
 
-  const calendarTrainings = useMemo(() =>
-    filterGov === "all" ? govTrainings : govTrainings.filter(t => t.governorate === filterGov),
-    [govTrainings, filterGov]);
+  const selectedGovTrainings = useMemo(() =>
+    selectedGov ? govTrainings.filter(t => t.governorate === selectedGov) : [],
+    [selectedGov, govTrainings]
+  );
 
-  const coursesForGov = useMemo(() =>
-    !followUpForm.governorate ? [] : govTrainings.filter(t => t.governorate === followUpForm.governorate),
-    [govTrainings, followUpForm.governorate]);
+  const selectedGovWeeks = useMemo(() =>
+    selectedGov ? weekSchedules.filter(w => w.governorate === selectedGov).sort((a, b) => a.week - b.week) : [],
+    [selectedGov, weekSchedules]
+  );
 
-  const handleSaveGov = () => {
-    const payload = {
+  const selectedGovStats = useMemo(() => {
+    if (!selectedGov) return null;
+    const total = selectedGovTrainings.length;
+    const completed = selectedGovTrainings.filter(t => t.status === "completed").length;
+    const inProgress = selectedGovTrainings.filter(t => t.status === "in_progress").length;
+    const delayed = selectedGovTrainings.filter(t => t.status === "delayed").length;
+    const compliant = selectedGovTrainings.filter(t => t.compliance === "on_track" || t.compliance === "completed").length;
+    const complianceRate = total > 0 ? Math.round((compliant / total) * 100) : 0;
+    return { total, completed, inProgress, delayed, complianceRate };
+  }, [selectedGov, selectedGovTrainings]);
+
+  const openAddGov = () => {
+    setEditingGov(null);
+    setGovForm(emptyGovForm);
+    setShowGovForm(true);
+  };
+
+  const openEditGov = (t: GovernorateTraining) => {
+    setEditingGov(t);
+    setGovForm({
+      governorate: t.governorate,
+      course_name: t.course_name,
+      domain: t.domain,
+      course_hours: t.course_hours,
+      track: t.track,
+      nominees_count: t.nominees_count,
+      planned_start_date: t.planned_start_date,
+      planned_end_date: t.planned_end_date,
+      actual_start_date: t.actual_start_date || "",
+      actual_end_date: t.actual_end_date || "",
+      status: t.status,
+      compliance: t.compliance,
+      notes: t.notes || "",
+    });
+    setShowGovForm(true);
+  };
+
+  const saveGov = () => {
+    const data = {
       ...govForm,
+      course_hours: Number(govForm.course_hours) || 0,
+      nominees_count: Number(govForm.nominees_count) || 0,
       actual_start_date: govForm.actual_start_date || null,
       actual_end_date: govForm.actual_end_date || null,
       created_by: user?.id || null,
     };
     if (editingGov) {
-      localDb.governorateTraining.update(editingGov.id, payload);
-      toast({ title: "تم", description: "تم تحديث بيانات المحافظة" });
+      localDb.governorateTraining.update(editingGov.id, data);
     } else {
-      localDb.governorateTraining.insert(payload);
-      toast({ title: "تم", description: "تم إضافة بيانات المحافظة" });
+      localDb.governorateTraining.insert(data);
     }
+    refreshData();
     setShowGovForm(false);
-    setEditingGov(null);
-    setGovForm(emptyGovForm);
-    refreshData();
+    toast({ title: editingGov ? "تم تحديث البيانات" : "تم إضافة البيانات" });
   };
 
-  const handleDeleteGov = (id: string) => {
-    if (!confirm("هل أنت متأكد من الحذف؟")) return;
+  const deleteGov = (id: string) => {
     localDb.governorateTraining.delete(id);
-    toast({ title: "تم", description: "تم حذف البيانات" });
     refreshData();
+    toast({ title: "تم حذف البيانات" });
   };
 
-  const openEditGov = (item: GovernorateTraining) => {
-    setEditingGov(item);
-    setGovForm({
-      governorate: item.governorate, course_name: item.course_name, domain: item.domain,
-      course_hours: item.course_hours, track: item.track, nominees_count: item.nominees_count,
-      planned_start_date: item.planned_start_date, planned_end_date: item.planned_end_date,
-      actual_start_date: item.actual_start_date || "", actual_end_date: item.actual_end_date || "",
-      status: item.status, compliance: item.compliance, notes: item.notes,
-    });
-    setShowGovForm(true);
+  const openAddWeek = () => {
+    setEditingWeek(null);
+    setWeekForm({ ...emptyWeekForm, governorate: selectedGov || "" });
+    setShowWeekForm(true);
   };
 
-  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>, mode: "plan" | "gov") => {
+  const openEditWeek = (w: WeekSchedule) => {
+    setEditingWeek(w);
+    setWeekForm({ governorate: w.governorate, week: w.week, start_date: w.start_date, end_date: w.end_date, label: w.label });
+    setShowWeekForm(true);
+  };
+
+  const saveWeek = () => {
+    const data = { ...weekForm, week: Number(weekForm.week) || 1 };
+    if (editingWeek) {
+      localDb.weekSchedules.update(editingWeek.id, data);
+    } else {
+      localDb.weekSchedules.insert(data);
+    }
+    refreshData();
+    setShowWeekForm(false);
+    toast({ title: editingWeek ? "تم تحديث الأسبوع" : "تم إضافة الأسبوع" });
+  };
+
+  const deleteWeek = (id: string) => {
+    localDb.weekSchedules.delete(id);
+    refreshData();
+    toast({ title: "تم حذف الأسبوع" });
+  };
+
+  const mapColumnToField = (header: string, value: unknown): [string, unknown] | null => {
+    const h = String(header).trim();
+    const v = value;
+    if (["اسم الدورة","الدورة","course_name"].includes(h)) return ["course_name", v];
+    if (["المحافظة","governorate"].includes(h)) return ["governorate", v];
+    if (["المجال","domain"].includes(h)) return ["domain", v];
+    if (["الساعات","hours","course_hours"].includes(h)) return ["course_hours", Number(v) || 0];
+    if (["المسار","track"].includes(h)) return ["track", v];
+    if (["المرشحون","عدد المرشحين","nominees","nominees_count"].includes(h)) return ["nominees_count", Number(v) || 0];
+    if (["تاريخ البدء","planned_start","start_date"].includes(h)) return ["planned_start_date", parseExcelDate(v)];
+    if (["تاريخ الانتهاء","planned_end","end_date"].includes(h)) return ["planned_end_date", parseExcelDate(v)];
+    if (["الحالة","status"].includes(h)) return ["status", mapStatusValue(String(v))];
+    if (["الالتزام","compliance"].includes(h)) return ["compliance", mapComplianceValue(String(v))];
+    if (["ملاحظات","notes"].includes(h)) return ["notes", v];
+    return null;
+  };
+
+  const parseExcelDate = (v: unknown): string => {
+    if (!v) return "";
+    if (typeof v === "number") {
+      const d = new Date((v - 25569) * 86400 * 1000);
+      return d.toISOString().split("T")[0];
+    }
+    const s = String(v).trim();
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+    return s;
+  };
+
+  const mapStatusValue = (s: string): string => {
+    const map: Record<string, string> = { "مخططة": "planned", "قيد التنفيذ": "in_progress", "مكتملة": "completed", "متأخرة": "delayed", planned: "planned", in_progress: "in_progress", completed: "completed", delayed: "delayed" };
+    return map[s] || s;
+  };
+
+  const mapComplianceValue = (s: string): string => {
+    const map: Record<string, string> = { "ملتزم": "on_track", "متأخر": "delayed", "مكتمل": "completed", "لم يبدأ": "not_started", on_track: "on_track", delayed: "delayed", completed: "completed", not_started: "not_started" };
+    return map[s] || s;
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>, mode: "full_plan" | "gov_only") => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const data = new Uint8Array(ev.target?.result as ArrayBuffer);
-        const wb = XLSX.read(data, { type: "array" });
-        let imported = 0;
+    reader.onload = (evt) => {
+      const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+      const wb = XLSX.read(data, { type: "array" });
+      let totalImported = 0;
 
-        const sheetName = mode === "plan"
-          ? (wb.SheetNames.find(n => n.includes("الدورات") || n.includes("courses")) || wb.SheetNames[1] || wb.SheetNames[0])
-          : wb.SheetNames[0];
-        const ws = wb.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
-
-        for (const row of rows) {
-          const gov = mode === "plan"
-            ? String(row["المحافظة"] || row["governorate"] || "غير محدد").trim()
-            : String(row["المحافظة"] || row["governorate"] || "").trim();
-          const name = String(row["اسم الدورة"] || row["الدورة"] || row["course_name"] || "").trim();
-          if (!name) continue;
-          if (mode === "gov" && !gov) continue;
-
-          localDb.governorateTraining.insert({
-            governorate: gov,
-            course_name: name,
-            domain: String(row["المجال"] || row["domain"] || ""),
-            course_hours: Number(row["الساعات"] || row["hours"] || row["عدد الساعات"] || 0),
-            track: String(row["المسار"] || row["track"] || "المسار الأول"),
-            nominees_count: Number(row["المرشحون"] || row["عدد المرشحين"] || row["nominees"] || 0),
-            planned_start_date: String(row["تاريخ البدء"] || row["planned_start"] || row["start_date"] || "").slice(0, 10),
-            planned_end_date: String(row["تاريخ الانتهاء"] || row["planned_end"] || row["end_date"] || "").slice(0, 10),
-            actual_start_date: String(row["البدء الفعلي"] || row["actual_start"] || "").slice(0, 10) || null,
-            actual_end_date: String(row["الانتهاء الفعلي"] || row["actual_end"] || "").slice(0, 10) || null,
-            status: String(row["الحالة"] || row["status"] || "planned"),
-            compliance: String(row["الالتزام"] || row["compliance"] || "not_started"),
-            notes: String(row["ملاحظات"] || row["notes"] || ""),
-            created_by: user?.id || null,
-          });
-          imported++;
+      if (mode === "full_plan") {
+        const sheetNames = wb.SheetNames;
+        localDb.trainingPlanImports.insert({ filename: file.name, sheet_count: sheetNames.length, imported_at: new Date().toISOString() });
+        for (const sheetName of sheetNames) {
+          const ws = wb.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json(ws);
+          for (const row of rows) {
+            const record: Record<string, unknown> = {};
+            for (const [header, value] of Object.entries(row as Record<string, unknown>)) {
+              const mapped = mapColumnToField(header, value);
+              if (mapped) record[mapped[0]] = mapped[1];
+            }
+            if (record.course_name || record.governorate) {
+              localDb.governorateTraining.insert({
+                ...emptyGovForm,
+                ...record,
+                created_by: user?.id || null,
+              });
+              totalImported++;
+            }
+          }
         }
-
-        toast({ title: "تم", description: imported > 0 ? `تم استيراد ${imported} سجل` : "لم يتم العثور على بيانات" });
-        refreshData();
-      } catch (err: unknown) {
-        toast({ title: "خطأ", description: `فشل قراءة الملف: ${err instanceof Error ? err.message : "خطأ"}`, variant: "destructive" });
+      } else {
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+        for (const row of rows) {
+          const record: Record<string, unknown> = {};
+          for (const [header, value] of Object.entries(row as Record<string, unknown>)) {
+            const mapped = mapColumnToField(header, value);
+            if (mapped) record[mapped[0]] = mapped[1];
+          }
+          if (record.course_name || record.governorate) {
+            localDb.governorateTraining.insert({
+              ...emptyGovForm,
+              ...record,
+              created_by: user?.id || null,
+            });
+            totalImported++;
+          }
+        }
       }
+
+      refreshData();
+      toast({ title: `تم استيراد ${totalImported} سجل` });
     };
     reader.readAsArrayBuffer(file);
     e.target.value = "";
   };
 
-  const handleSaveFollowUp = () => {
-    if (!followUpForm.governorate || !followUpForm.course_name) {
-      toast({ title: "خطأ", description: "يرجى اختيار المحافظة والدورة", variant: "destructive" });
-      return;
-    }
-    const matching = govTrainings.find(t => t.governorate === followUpForm.governorate && t.course_name === followUpForm.course_name);
-    localDb.followUpRecords.insert({
-      governorate_training_id: matching?.id || "",
-      governorate: followUpForm.governorate,
-      course_name: followUpForm.course_name,
-      record_date: followUpForm.record_date,
-      compliance_status: followUpForm.compliance_status,
-      notes: followUpForm.notes,
-      recorded_by: userId,
-      recorded_by_name: userName,
-    });
-    if (matching) localDb.governorateTraining.update(matching.id, { compliance: followUpForm.compliance_status });
-
-    const assigned = followUpNotifs.filter(n => n.governorate === followUpForm.governorate && n.active);
-    for (const nf of assigned) {
-      localDb.notifications.insert({
-        user_id: nf.assigned_to,
-        message: `متابعة ${followUpForm.governorate}: ${complianceLabels[followUpForm.compliance_status]} — ${followUpForm.course_name}`,
-        type: followUpForm.compliance_status === "delayed" ? "warning" : "info",
-        link: "/training-plan",
-      });
-    }
-    toast({ title: "تم", description: "تم تسجيل المتابعة" });
-    setShowFollowUpForm(false);
-    setFollowUpForm(emptyFollowUpForm);
-    refreshData();
-  };
-
-  const handleSaveNotif = () => {
-    const u = profiles.find(p => p.id === notifForm.assigned_to);
-    if (!notifForm.governorate || !notifForm.assigned_to) {
-      toast({ title: "خطأ", description: "يرجى اختيار المحافظة والمستخدم", variant: "destructive" });
-      return;
-    }
-    localDb.followUpNotifications.insert({
-      governorate: notifForm.governorate,
-      assigned_to: notifForm.assigned_to,
-      assigned_to_name: u?.name || "",
-      assigned_by: userId,
-      assigned_by_name: userName,
-      frequency: notifForm.frequency,
-      active: true,
-      notes: notifForm.notes,
-    });
-    toast({ title: "تم", description: "تم إعداد إشعار المتابعة" });
-    setShowNotifForm(false);
-    setNotifForm(emptyNotifForm);
-    refreshData();
-  };
-
-  const handleDeleteNotif = (id: string) => {
-    localDb.followUpNotifications.delete(id);
-    toast({ title: "تم", description: "تم حذف إعداد الإشعار" });
-    refreshData();
-  };
-
-  const handleToggleNotif = (id: string, active: boolean) => {
-    localDb.followUpNotifications.update(id, { active: !active });
-    refreshData();
-  };
-
   const exportData = () => {
-    if (activeTab === "followup") {
-      return {
-        filename: "follow_up_records", sheetName: "سجلات المتابعة",
-        rows: followUpRecords.map(r => ({
-          المحافظة: r.governorate, "اسم الدورة": r.course_name,
-          "تاريخ التسجيل": r.record_date, "حالة الالتزام": complianceLabels[r.compliance_status] || r.compliance_status,
-          ملاحظات: r.notes, "سجل بواسطة": r.recorded_by_name,
-        })),
-      };
-    }
-    return {
-      filename: "governorate_training", sheetName: "تدريب المحافظات",
-      rows: filteredTrainings.map(t => ({
-        المحافظة: t.governorate, "اسم الدورة": t.course_name, المجال: t.domain,
-        الساعات: t.course_hours, المسار: t.track, "عدد المرشحين": t.nominees_count,
-        "تاريخ البدء المخطط": t.planned_start_date, "تاريخ الانتهاء المخطط": t.planned_end_date,
-        "البدء الفعلي": t.actual_start_date || "", "الانتهاء الفعلي": t.actual_end_date || "",
-        الحالة: statusLabels[t.status] || t.status, الالتزام: complianceLabels[t.compliance] || t.compliance,
-        ملاحظات: t.notes,
-      })),
-    };
+    const rows = filteredTrainings.map(t => ({
+      "المحافظة": t.governorate,
+      "اسم الدورة": t.course_name,
+      "المجال": t.domain,
+      "الساعات": t.course_hours,
+      "المسار": trackLabels[t.track as keyof typeof trackLabels] || t.track,
+      "عدد المرشحين": t.nominees_count,
+      "تاريخ البدء": t.planned_start_date,
+      "تاريخ الانتهاء": t.planned_end_date,
+      "تاريخ البدء الفعلي": t.actual_start_date || "",
+      "تاريخ الانتهاء الفعلي": t.actual_end_date || "",
+      "الحالة": statusLabels[t.status as keyof typeof statusLabels] || t.status,
+      "الالتزام": complianceLabels[t.compliance as keyof typeof complianceLabels] || t.compliance,
+      "ملاحظات": t.notes,
+    }));
+    return { rows, filename: "خطة_التدريب_المحافظات", sheetName: "البيانات" };
   };
 
-  const tabItems = [
-    { value: "dashboard", label: "لوحة القيادة", icon: BarChart3 },
-    { value: "entry", label: "الإدخال", icon: Plus },
-    { value: "followup", label: "المتابعة", icon: Bell },
-  ] as const;
+  const handleGovClick = (name: string) => {
+    setSelectedGov(name);
+    setFilterGov(null);
+  };
+
+  const handleStatCardClick = (statusFilter: string | null) => {
+    if (!selectedGov) return;
+    if (statusFilter) {
+      setFilterGov(selectedGov);
+      setSearch("");
+      setActiveTab("dashboard");
+    }
+  };
+
+  const weekSchedulesByGov = useMemo(() => {
+    const grouped: Record<string, WeekSchedule[]> = {};
+    for (const w of weekSchedules) {
+      if (!grouped[w.governorate]) grouped[w.governorate] = [];
+      grouped[w.governorate].push(w);
+    }
+    for (const g of Object.keys(grouped)) {
+      grouped[g].sort((a, b) => a.week - b.week);
+    }
+    return grouped;
+  }, [weekSchedules]);
+
+  const statusFilterRef = useRef<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  const displayTrainings = useMemo(() => {
+    let list = filteredTrainings;
+    if (statusFilter) {
+      list = list.filter(t => t.status === statusFilter);
+    }
+    return list;
+  }, [filteredTrainings, statusFilter]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 animate-fade-in">
-      <PageHeader title="الخطة التدريبية" subtitle="إدارة وتتبع تدريب المحافظات" icon={CalendarDays}
-        sections={[{ id: "tabs_nav", label: "تبويبات الخطة" }, { id: "data_content", label: "محتوى البيانات" }]}
-        exportData={exportData} />
+    <div className="space-y-3">
+      <PageHeader
+        title="الخطة التدريبية للمحافظات"
+        subtitle="إدارة ومتابعة الدورات التدريبية في المحافظات"
+        icon={CalendarDays}
+        sections={[{ id: "map_view", label: "خارطة المحافظات" }, { id: "data_content", label: "محتوى البيانات" }]}
+        exportData={exportData}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1.5 no-print">
-          {tabItems.map(tab => (
-            <TabsTrigger key={tab.value} value={tab.value}
-              className="flex items-center gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 py-1.5">
-              <tab.icon className="w-3.5 h-3.5" /><span className="whitespace-nowrap">{tab.label}</span>
-            </TabsTrigger>
-          ))}
+        <TabsList className="mb-3">
+          <TabsTrigger value="dashboard" className="gap-1.5">
+            <BarChart3 className="w-3.5 h-3.5" />لوحة القيادة
+          </TabsTrigger>
+          <TabsTrigger value="entry" className="gap-1.5">
+            <Plus className="w-3.5 h-3.5" />الإدخال
+          </TabsTrigger>
         </TabsList>
 
-        {/* ─── Dashboard ─── */}
-        <TabsContent value="dashboard" className="mt-4">
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-3 no-print">
-              <div className="relative flex-1 min-w-[180px] max-w-sm">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث..." className="ps-9" />
+        <TabsContent value="dashboard" data-print-section="map_view">
+          <IraqMap stats={mapStats} onGovernorateClick={handleGovClick} selectedGovernorate={selectedGov} />
+
+          {selectedGov && selectedGovStats && (
+            <div className="mt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setSelectedGov(null); setFilterGov(null); setStatusFilter(null); }}>
+                  <ChevronRight className="w-4 h-4" />رجوع للخارطة
+                </Button>
+                <span className="font-bold text-lg flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-primary" />{selectedGov}
+                </span>
               </div>
-              <div className="flex gap-1.5 overflow-x-auto">
-                <button onClick={() => setFilterGov("all")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${filterGov === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-                  كل المحافظات</button>
-                {governorates.map(g => (
-                  <button key={g} onClick={() => setFilterGov(g)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${filterGov === g ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-                    {g}</button>
-                ))}
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Card className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all" onClick={() => setStatusFilter(null)}>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-primary">{selectedGovStats.total}</p>
+                    <p className="text-[11px] text-muted-foreground">إجمالي الدورات</p>
+                  </CardContent>
+                </Card>
+                <Card className="cursor-pointer hover:ring-2 hover:ring-green-400/30 transition-all" onClick={() => setStatusFilter("completed")}>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-green-600">{selectedGovStats.completed}</p>
+                    <p className="text-[11px] text-muted-foreground">مكتملة</p>
+                  </CardContent>
+                </Card>
+                <Card className="cursor-pointer hover:ring-2 hover:ring-amber-400/30 transition-all" onClick={() => setStatusFilter("delayed")}>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-amber-600">{selectedGovStats.delayed}</p>
+                    <p className="text-[11px] text-muted-foreground">متأخرة</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-blue-600">{selectedGovStats.complianceRate}%</p>
+                    <p className="text-[11px] text-muted-foreground">نسبة الالتزام</p>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-print-section="stats">
-              <Card><CardContent className="p-3 text-center">
-                <p className="text-xl font-bold text-primary">{stats.total}</p>
-                <p className="text-[10px] text-muted-foreground">إجمالي الدورات</p>
-              </CardContent></Card>
-              <Card><CardContent className="p-3 text-center">
-                <p className="text-xl font-bold text-success">{stats.completed}</p>
-                <p className="text-[10px] text-muted-foreground">مكتملة</p>
-              </CardContent></Card>
-              <Card><CardContent className="p-3 text-center">
-                <p className="text-xl font-bold text-warning">{stats.delayed}</p>
-                <p className="text-[10px] text-muted-foreground">متأخرة</p>
-              </CardContent></Card>
-              <Card><CardContent className="p-3 text-center">
-                <p className="text-xl font-bold text-info">{stats.complianceRate}%</p>
-                <p className="text-[10px] text-muted-foreground">نسبة الالتزام</p>
-              </CardContent></Card>
-            </div>
+              {selectedGovWeeks.length > 0 && (
+                <div className="border rounded-lg p-3">
+                  <h3 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-primary" />جدول الأسابيع
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedGovWeeks.map(w => (
+                      <span key={w.id} className="text-[11px] bg-blue-50 text-blue-700 border border-blue-200 rounded px-2 py-1">
+                        {w.label}: {w.start_date} — {w.end_date}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            <div data-print-section="calendar">
-              <MonthCalendar trainings={calendarTrainings} month={calMonth}
-                onPrev={() => setCalMonth(p => new Date(p.getFullYear(), p.getMonth() - 1, 1))}
-                onNext={() => setCalMonth(p => new Date(p.getFullYear(), p.getMonth() + 1, 1))} />
-            </div>
+              <MonthCalendar
+                trainings={selectedGovTrainings}
+                weekSchedules={selectedGovWeeks}
+                calMonth={calMonth}
+                setCalMonth={setCalMonth}
+              />
 
-            <div className="overflow-x-auto rounded-xl border border-border" data-print-section="table">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-muted/50 border-b border-border">
-                    <th className="px-3 py-2.5 text-start font-semibold text-foreground whitespace-nowrap">المحافظة</th>
-                    <th className="px-3 py-2.5 text-start font-semibold text-foreground whitespace-nowrap">الدورة</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">الساعات</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">المرشحون</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">البدء</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">الانتهاء</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">الحالة</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">الالتزام</th>
-                    <th className="px-3 py-2.5 text-start font-semibold text-foreground whitespace-nowrap">ملاحظة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTrainings.length > 0 ? filteredTrainings.map(t => (
-                    <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="px-3 py-2 font-medium text-foreground whitespace-nowrap">{t.governorate}</td>
-                      <td className="px-3 py-2 text-foreground whitespace-nowrap">{t.course_name}</td>
-                      <td className="px-3 py-2 text-center">{t.course_hours}</td>
-                      <td className="px-3 py-2 text-center">{t.nominees_count}</td>
-                      <td className="px-3 py-2 text-center whitespace-nowrap">{t.planned_start_date}</td>
-                      <td className="px-3 py-2 text-center whitespace-nowrap">{t.planned_end_date}</td>
-                      <td className="px-3 py-2 text-center"><StatusBadge status={statusLabels[t.status] || t.status} variant={statusColors[t.status] as "success" | "warning" | "info" | "neutral"} /></td>
-                      <td className="px-3 py-2 text-center"><StatusBadge status={complianceLabels[t.compliance] || t.compliance} variant={complianceColors[t.compliance] as "success" | "warning" | "info" | "neutral"} /></td>
-                      <td className="px-3 py-2 text-muted-foreground max-w-[200px] truncate" title={t.notes}>{t.notes}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="p-2 text-right">الدورة</th>
+                      <th className="p-2 text-right">المجال</th>
+                      <th className="p-2 text-center">المسار</th>
+                      <th className="p-2 text-center">الساعات</th>
+                      <th className="p-2 text-center">المرشحون</th>
+                      <th className="p-2 text-center">تاريخ البدء</th>
+                      <th className="p-2 text-center">تاريخ الانتهاء</th>
+                      <th className="p-2 text-center">الحالة</th>
+                      <th className="p-2 text-center">الالتزام</th>
+                      <th className="p-2 text-center"></th>
                     </tr>
-                  )) : <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">لا توجد بيانات</td></tr>}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {(statusFilter ? selectedGovTrainings.filter(t => t.status === statusFilter) : selectedGovTrainings).map(t => (
+                      <tr key={t.id} className="border-b hover:bg-muted/30">
+                        <td className="p-2">{t.course_name}</td>
+                        <td className="p-2">{t.domain}</td>
+                        <td className="p-2 text-center">{trackLabels[t.track as keyof typeof trackLabels] || t.track}</td>
+                        <td className="p-2 text-center">{t.course_hours}</td>
+                        <td className="p-2 text-center">{t.nominees_count}</td>
+                        <td className="p-2 text-center">{t.planned_start_date}</td>
+                        <td className="p-2 text-center">{t.planned_end_date}</td>
+                        <td className="p-2 text-center"><StatusBadge status={statusLabels[t.status as keyof typeof statusLabels] || t.status} variant={statusColors[t.status as keyof typeof statusColors] as any} /></td>
+                        <td className="p-2 text-center"><StatusBadge status={complianceLabels[t.compliance as keyof typeof complianceLabels] || t.compliance} variant={complianceColors[t.compliance as keyof typeof complianceColors] as any} /></td>
+                        <td className="p-2 text-center">
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => navigate(`/courses?search=${encodeURIComponent(t.course_name)}`)}>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
+
+          {!selectedGov && (
+            <div className="mt-4 space-y-4" data-print-section="data_content">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <Card><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-primary">{stats.total}</p><p className="text-[11px] text-muted-foreground">إجمالي الدورات</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-green-600">{stats.completed}</p><p className="text-[11px] text-muted-foreground">مكتملة</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-blue-600">{stats.inProgress}</p><p className="text-[11px] text-muted-foreground">قيد التنفيذ</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-amber-600">{stats.delayed}</p><p className="text-[11px] text-muted-foreground">متأخرة</p></CardContent></Card>
+                <Card><CardContent className="p-3 text-center"><p className="text-2xl font-bold text-purple-600">{stats.complianceRate}%</p><p className="text-[11px] text-muted-foreground">نسبة الالتزام</p></CardContent></Card>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="بحث..." value={search} onChange={e => setSearch(e.target.value)} className="pr-8" />
+                </div>
+                <Select value={filterGov || "__all__"} onValueChange={v => setFilterGov(v === "__all__" ? null : v)}>
+                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="المحافظة" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">الكل</SelectItem>
+                    {governorates.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="p-2 text-right">المحافظة</th>
+                      <th className="p-2 text-right">الدورة</th>
+                      <th className="p-2 text-right">المجال</th>
+                      <th className="p-2 text-center">المسار</th>
+                      <th className="p-2 text-center">الساعات</th>
+                      <th className="p-2 text-center">المرشحون</th>
+                      <th className="p-2 text-center">تاريخ البدء</th>
+                      <th className="p-2 text-center">تاريخ الانتهاء</th>
+                      <th className="p-2 text-center">الحالة</th>
+                      <th className="p-2 text-center">الالتزام</th>
+                      <th className="p-2 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTrainings.map(t => (
+                      <tr key={t.id} className="border-b hover:bg-muted/30">
+                        <td className="p-2">{t.governorate}</td>
+                        <td className="p-2">{t.course_name}</td>
+                        <td className="p-2">{t.domain}</td>
+                        <td className="p-2 text-center">{trackLabels[t.track as keyof typeof trackLabels] || t.track}</td>
+                        <td className="p-2 text-center">{t.course_hours}</td>
+                        <td className="p-2 text-center">{t.nominees_count}</td>
+                        <td className="p-2 text-center">{t.planned_start_date}</td>
+                        <td className="p-2 text-center">{t.planned_end_date}</td>
+                        <td className="p-2 text-center"><StatusBadge status={statusLabels[t.status as keyof typeof statusLabels] || t.status} variant={statusColors[t.status as keyof typeof statusColors] as any} /></td>
+                        <td className="p-2 text-center"><StatusBadge status={complianceLabels[t.compliance as keyof typeof complianceLabels] || t.compliance} variant={complianceColors[t.compliance as keyof typeof complianceColors] as any} /></td>
+                        <td className="p-2 text-center">
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => navigate(`/courses?search=${encodeURIComponent(t.course_name)}`)}>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredTrainings.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">لا توجد بيانات</p>
+                )}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
-        {/* ─── Data Entry ─── */}
-        <TabsContent value="entry" className="mt-4">
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-3 no-print">
-              {has("import_training_plan") && (<>
-                <input type="file" ref={excelRef} accept=".xlsx,.xls" className="hidden"
-                  onChange={e => handleImportExcel(e, "plan")} />
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => excelRef.current?.click()}>
-                  <FileSpreadsheet className="w-4 h-4" />استيراد خطة تدريبية</Button>
-              </>)}
-              {has("import_training_plan") && (<>
-                <input type="file" ref={govExcelRef} accept=".xlsx,.xls" className="hidden"
-                  onChange={e => handleImportExcel(e, "gov")} />
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => govExcelRef.current?.click()}>
-                  <FileSpreadsheet className="w-4 h-4" />استيراد بيانات المحافظات</Button>
-              </>)}
-              {has("add_governorate_training") && (
-                <Button size="sm" className="gap-2"
-                  onClick={() => { setEditingGov(null); setGovForm(emptyGovForm); setShowGovForm(true); }}>
-                  <Plus className="w-4 h-4" />إضافة بيانات محافظة</Button>
-              )}
-            </div>
+        <TabsContent value="entry" data-print-section="data_content">
+          <div className="space-y-4">
+            {has("import_training_plan") && (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" className="gap-1.5" onClick={() => excelRef.current?.click()}>
+                  <FileSpreadsheet className="w-4 h-4" />استيراد خطة تدريبية من Excel
+                </Button>
+                <input ref={excelRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => handleImportExcel(e, "full_plan")} />
 
-            <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full text-xs">
+                <Button variant="outline" className="gap-1.5" onClick={() => govExcelRef.current?.click()}>
+                  <FileSpreadsheet className="w-4 h-4" />استيراد بيانات محافظة من Excel
+                </Button>
+                <input ref={govExcelRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => handleImportExcel(e, "gov_only")} />
+              </div>
+            )}
+
+            {has("add_governorate_training") && (
+              <Button className="gap-1.5" onClick={openAddGov}>
+                <Plus className="w-4 h-4" />إضافة بيانات محافظة
+              </Button>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="bg-muted/50 border-b border-border">
-                    <th className="px-3 py-2.5 text-start font-semibold text-foreground whitespace-nowrap">المحافظة</th>
-                    <th className="px-3 py-2.5 text-start font-semibold text-foreground whitespace-nowrap">الدورة</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">الساعات</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">المسار</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">المرشحون</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">البدء</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">الانتهاء</th>
-                    <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">الحالة</th>
-                    {has("edit_governorate_training") && <th className="px-3 py-2.5 text-center font-semibold text-foreground whitespace-nowrap">إجراءات</th>}
+                  <tr className="border-b bg-muted/50">
+                    <th className="p-2 text-right">المحافظة</th>
+                    <th className="p-2 text-right">الدورة</th>
+                    <th className="p-2 text-right">المجال</th>
+                    <th className="p-2 text-center">المسار</th>
+                    <th className="p-2 text-center">الساعات</th>
+                    <th className="p-2 text-center">المرشحون</th>
+                    <th className="p-2 text-center">تاريخ البدء</th>
+                    <th className="p-2 text-center">تاريخ الانتهاء</th>
+                    <th className="p-2 text-center">الحالة</th>
+                    <th className="p-2 text-center">الالتزام</th>
+                    {has("edit_governorate_training") && <th className="p-2 text-center">إجراءات</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {govTrainings.length > 0 ? govTrainings.map(t => (
-                    <tr key={t.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="px-3 py-2 font-medium text-foreground whitespace-nowrap">{t.governorate}</td>
-                      <td className="px-3 py-2 text-foreground whitespace-nowrap">{t.course_name}</td>
-                      <td className="px-3 py-2 text-center">{t.course_hours}</td>
-                      <td className="px-3 py-2 text-center whitespace-nowrap">{t.track}</td>
-                      <td className="px-3 py-2 text-center">{t.nominees_count}</td>
-                      <td className="px-3 py-2 text-center whitespace-nowrap">{t.planned_start_date}</td>
-                      <td className="px-3 py-2 text-center whitespace-nowrap">{t.planned_end_date}</td>
-                      <td className="px-3 py-2 text-center"><StatusBadge status={statusLabels[t.status] || t.status} variant={statusColors[t.status] as "success" | "warning" | "info" | "neutral"} /></td>
+                  {govTrainings.map(t => (
+                    <tr key={t.id} className="border-b hover:bg-muted/30">
+                      <td className="p-2">{t.governorate}</td>
+                      <td className="p-2">{t.course_name}</td>
+                      <td className="p-2">{t.domain}</td>
+                      <td className="p-2 text-center">{trackLabels[t.track as keyof typeof trackLabels] || t.track}</td>
+                      <td className="p-2 text-center">{t.course_hours}</td>
+                      <td className="p-2 text-center">{t.nominees_count}</td>
+                      <td className="p-2 text-center">{t.planned_start_date}</td>
+                      <td className="p-2 text-center">{t.planned_end_date}</td>
+                      <td className="p-2 text-center"><StatusBadge status={statusLabels[t.status as keyof typeof statusLabels] || t.status} variant={statusColors[t.status as keyof typeof statusColors] as any} /></td>
+                      <td className="p-2 text-center"><StatusBadge status={complianceLabels[t.compliance as keyof typeof complianceLabels] || t.compliance} variant={complianceColors[t.compliance as keyof typeof complianceColors] as any} /></td>
                       {has("edit_governorate_training") && (
-                        <td className="px-3 py-2 text-center whitespace-nowrap">
-                          <button onClick={() => openEditGov(t)} className="text-muted-foreground hover:text-foreground me-2"><Pencil className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => handleDeleteGov(t.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <td className="p-2 text-center">
+                          <div className="flex justify-center gap-1">
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openEditGov(t)}>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive" onClick={() => deleteGov(t.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </td>
                       )}
                     </tr>
-                  )) : <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">لا توجد بيانات — استورد من Excel أو أضف يدوياً</td></tr>}
+                  ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          <Dialog open={showGovForm} onOpenChange={setShowGovForm}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  {editingGov ? "تعديل بيانات المحافظة" : "إضافة بيانات محافظة"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3 py-2 max-h-[60vh] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">المحافظة</Label>
-                    <Input value={govForm.governorate} onChange={e => setGovForm({ ...govForm, governorate: e.target.value })} className="mt-1 text-xs" /></div>
-                  <div><Label className="text-xs">المجال</Label>
-                    <Input value={govForm.domain} onChange={e => setGovForm({ ...govForm, domain: e.target.value })} className="mt-1 text-xs" /></div>
-                </div>
-                <div><Label className="text-xs">اسم الدورة</Label>
-                  <Input value={govForm.course_name} onChange={e => setGovForm({ ...govForm, course_name: e.target.value })} className="mt-1 text-xs" /></div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><Label className="text-xs">الساعات</Label>
-                    <Input type="number" value={govForm.course_hours} onChange={e => setGovForm({ ...govForm, course_hours: Number(e.target.value) })} className="mt-1 text-xs" /></div>
-                  <div><Label className="text-xs">المسار</Label>
-                    <Select value={govForm.track} onValueChange={v => setGovForm({ ...govForm, track: v })}>
-                      <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="المسار الأول">المسار الأول</SelectItem>
-                        <SelectItem value="المسار الثاني">المسار الثاني</SelectItem>
-                      </SelectContent></Select></div>
-                  <div><Label className="text-xs">المرشحون</Label>
-                    <Input type="number" value={govForm.nominees_count} onChange={e => setGovForm({ ...govForm, nominees_count: Number(e.target.value) })} className="mt-1 text-xs" /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">تاريخ البدء المخطط</Label>
-                    <Input type="date" value={govForm.planned_start_date} onChange={e => setGovForm({ ...govForm, planned_start_date: e.target.value })} className="mt-1 text-xs" /></div>
-                  <div><Label className="text-xs">تاريخ الانتهاء المخطط</Label>
-                    <Input type="date" value={govForm.planned_end_date} onChange={e => setGovForm({ ...govForm, planned_end_date: e.target.value })} className="mt-1 text-xs" /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">البدء الفعلي</Label>
-                    <Input type="date" value={govForm.actual_start_date} onChange={e => setGovForm({ ...govForm, actual_start_date: e.target.value })} className="mt-1 text-xs" /></div>
-                  <div><Label className="text-xs">الانتهاء الفعلي</Label>
-                    <Input type="date" value={govForm.actual_end_date} onChange={e => setGovForm({ ...govForm, actual_end_date: e.target.value })} className="mt-1 text-xs" /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">الحالة</Label>
-                    <Select value={govForm.status} onValueChange={v => setGovForm({ ...govForm, status: v })}>
-                      <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="planned">مخططة</SelectItem>
-                        <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                        <SelectItem value="completed">مكتملة</SelectItem>
-                        <SelectItem value="delayed">متأخرة</SelectItem>
-                      </SelectContent></Select></div>
-                  <div><Label className="text-xs">الالتزام</Label>
-                    <Select value={govForm.compliance} onValueChange={v => setGovForm({ ...govForm, compliance: v })}>
-                      <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="not_started">لم يبدأ</SelectItem>
-                        <SelectItem value="on_track">ملتزم</SelectItem>
-                        <SelectItem value="delayed">متأخر</SelectItem>
-                        <SelectItem value="completed">مكتمل</SelectItem>
-                      </SelectContent></Select></div>
-                </div>
-                <div><Label className="text-xs">ملاحظات</Label>
-                  <Textarea value={govForm.notes} onChange={e => setGovForm({ ...govForm, notes: e.target.value })} className="mt-1 text-xs" rows={2} /></div>
-              </div>
-              <div className="flex justify-end gap-2 mt-2">
-                <Button variant="outline" size="sm" onClick={() => setShowGovForm(false)}>إلغاء</Button>
-                <Button size="sm" onClick={handleSaveGov} disabled={!govForm.governorate || !govForm.course_name}>حفظ</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-
-        {/* ─── Follow-up ─── */}
-        <TabsContent value="followup" className="mt-4">
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-3 no-print">
-              {has("record_followup") && (
-                <Button size="sm" className="gap-2" onClick={() => { setFollowUpForm(emptyFollowUpForm); setShowFollowUpForm(true); }}>
-                  <Plus className="w-4 h-4" />تسجيل متابعة</Button>
-              )}
-              {isManager && (
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => { setNotifForm(emptyNotifForm); setShowNotifForm(true); }}>
-                  <Bell className="w-4 h-4" />إعداد إشعار متابعة</Button>
+              {govTrainings.length === 0 && (
+                <p className="text-center text-muted-foreground py-8">لا توجد بيانات</p>
               )}
             </div>
 
-            <Card>
-              <div className="bg-primary/5 px-4 py-2.5 border-b border-border">
-                <h3 className="font-bold text-sm text-foreground flex items-center gap-2"><Clock className="w-4 h-4 text-primary" />سجلات المتابعة</h3>
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm flex items-center gap-1.5">
+                  <CalendarDays className="w-4 h-4 text-primary" />جدول الأسابيع
+                </h3>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={openAddWeek}>
+                  <Plus className="w-3.5 h-3.5" />إضافة أسبوع
+                </Button>
               </div>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-border/50 bg-muted/20">
-                        <th className="px-3 py-2 text-start font-semibold text-foreground">المحافظة</th>
-                        <th className="px-3 py-2 text-start font-semibold text-foreground">الدورة</th>
-                        <th className="px-3 py-2 text-center font-semibold text-foreground whitespace-nowrap">تاريخ التسجيل</th>
-                        <th className="px-3 py-2 text-center font-semibold text-foreground">الالتزام</th>
-                        <th className="px-3 py-2 text-start font-semibold text-foreground">ملاحظات</th>
-                        <th className="px-3 py-2 text-start font-semibold text-foreground">سجل بواسطة</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {followUpRecords.length > 0 ? followUpRecords.map(r => (
-                        <tr key={r.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                          <td className="px-3 py-1.5 font-medium text-foreground">{r.governorate}</td>
-                          <td className="px-3 py-1.5 text-foreground">{r.course_name}</td>
-                          <td className="px-3 py-1.5 text-center whitespace-nowrap">{r.record_date}</td>
-                          <td className="px-3 py-1.5 text-center"><StatusBadge status={complianceLabels[r.compliance_status] || r.compliance_status} variant={complianceColors[r.compliance_status] as "success" | "warning" | "info" | "neutral"} /></td>
-                          <td className="px-3 py-1.5 text-muted-foreground max-w-[200px] truncate" title={r.notes}>{r.notes}</td>
-                          <td className="px-3 py-1.5 text-muted-foreground">{r.recorded_by_name}</td>
-                        </tr>
-                      )) : <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">لا توجد سجلات متابعة</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
 
-            {isManager && (
-              <Card>
-                <div className="bg-warning/5 px-4 py-2.5 border-b border-border">
-                  <h3 className="font-bold text-sm text-foreground flex items-center gap-2"><Bell className="w-4 h-4 text-warning" />إعدادات إشعارات المتابعة</h3>
-                </div>
-                <CardContent className="p-0">
+              {Object.keys(weekSchedulesByGov).length === 0 && (
+                <p className="text-center text-muted-foreground py-4 text-sm">لا توجد جداول أسابيع</p>
+              )}
+
+              {Object.entries(weekSchedulesByGov).map(([gov, weeks]) => (
+                <div key={gov} className="mb-3">
+                  <h4 className="font-medium text-sm mb-1 flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-muted-foreground" />{gov}
+                  </h4>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+                    <table className="w-full text-xs border-collapse">
                       <thead>
-                        <tr className="border-b border-border/50 bg-muted/20">
-                          <th className="px-3 py-2 text-start font-semibold text-foreground">المحافظة</th>
-                          <th className="px-3 py-2 text-start font-semibold text-foreground">المكلف</th>
-                          <th className="px-3 py-2 text-center font-semibold text-foreground">التكرار</th>
-                          <th className="px-3 py-2 text-center font-semibold text-foreground">نشط</th>
-                          <th className="px-3 py-2 text-start font-semibold text-foreground">ملاحظات</th>
-                          <th className="px-3 py-2 text-center font-semibold text-foreground">إجراءات</th>
+                        <tr className="border-b bg-muted/30">
+                          <th className="p-1.5 text-right">الأسبوع</th>
+                          <th className="p-1.5 text-center">تاريخ البدء</th>
+                          <th className="p-1.5 text-center">تاريخ الانتهاء</th>
+                          <th className="p-1.5 text-right">الوصف</th>
+                          <th className="p-1.5 text-center">إجراءات</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {followUpNotifs.length > 0 ? followUpNotifs.map(n => (
-                          <tr key={n.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                            <td className="px-3 py-1.5 font-medium text-foreground">{n.governorate}</td>
-                            <td className="px-3 py-1.5 text-foreground">{n.assigned_to_name}</td>
-                            <td className="px-3 py-1.5 text-center">{frequencyLabels[n.frequency] || n.frequency}</td>
-                            <td className="px-3 py-1.5 text-center">
-                              <button onClick={() => handleToggleNotif(n.id, n.active)}
-                                className={`px-2 py-0.5 rounded text-[10px] ${n.active ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"}`}>
-                                {n.active ? "نشط" : "معطل"}</button></td>
-                            <td className="px-3 py-1.5 text-muted-foreground max-w-[200px] truncate" title={n.notes}>{n.notes}</td>
-                            <td className="px-3 py-1.5 text-center">
-                              <button onClick={() => handleDeleteNotif(n.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></button></td>
+                        {weeks.map(w => (
+                          <tr key={w.id} className="border-b">
+                            <td className="p-1.5">{w.week}</td>
+                            <td className="p-1.5 text-center">{w.start_date}</td>
+                            <td className="p-1.5 text-center">{w.end_date}</td>
+                            <td className="p-1.5">{w.label}</td>
+                            <td className="p-1.5 text-center">
+                              <div className="flex justify-center gap-1">
+                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => openEditWeek(w)}>
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-destructive" onClick={() => deleteWeek(w.id)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
-                        )) : <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">لا توجد إعدادات إشعارات</td></tr>}
+                        ))}
                       </tbody>
                     </table>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {!isManager && (
-              <Card>
-                <div className="bg-info/5 px-4 py-2.5 border-b border-border">
-                  <h3 className="font-bold text-sm text-foreground flex items-center gap-2"><Bell className="w-4 h-4 text-info" />مهام المتابعة المسندة إليّ</h3>
                 </div>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-border/50 bg-muted/20">
-                          <th className="px-3 py-2 text-start font-semibold text-foreground">المحافظة</th>
-                          <th className="px-3 py-2 text-center font-semibold text-foreground">التكرار</th>
-                          <th className="px-3 py-2 text-start font-semibold text-foreground">ملاحظات</th>
-                          <th className="px-3 py-2 text-center font-semibold text-foreground">الحالة</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const mine = followUpNotifs.filter(n => n.assigned_to === userId && n.active);
-                          return mine.length > 0 ? mine.map(n => (
-                            <tr key={n.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                              <td className="px-3 py-1.5 font-medium text-foreground">{n.governorate}</td>
-                              <td className="px-3 py-1.5 text-center">{frequencyLabels[n.frequency] || n.frequency}</td>
-                              <td className="px-3 py-1.5 text-muted-foreground">{n.notes}</td>
-                              <td className="px-3 py-1.5 text-center"><span className="px-2 py-0.5 rounded text-[10px] bg-info/20 text-info">نشط</span></td>
-                            </tr>
-                          )) : <tr><td colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد مهام متابعة مسندة إليك</td></tr>;
-                        })()}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+              ))}
+            </div>
           </div>
-
-          <Dialog open={showFollowUpForm} onOpenChange={setShowFollowUpForm}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" />تسجيل متابعة</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3 py-2">
-                <div><Label className="text-xs">المحافظة</Label>
-                  <Select value={followUpForm.governorate} onValueChange={v => setFollowUpForm({ ...followUpForm, governorate: v, course_name: "" })}>
-                    <SelectTrigger className="mt-1 text-xs"><SelectValue placeholder="اختر المحافظة" /></SelectTrigger>
-                    <SelectContent>{governorates.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select></div>
-                <div><Label className="text-xs">الدورة</Label>
-                  <Select value={followUpForm.course_name} onValueChange={v => setFollowUpForm({ ...followUpForm, course_name: v })}
-                    disabled={!followUpForm.governorate}>
-                    <SelectTrigger className="mt-1 text-xs"><SelectValue placeholder="اختر الدورة" /></SelectTrigger>
-                    <SelectContent>{coursesForGov.map(c => <SelectItem key={c.id} value={c.course_name}>{c.course_name}</SelectItem>)}</SelectContent></Select></div>
-                <div><Label className="text-xs">تاريخ التسجيل</Label>
-                  <Input type="date" value={followUpForm.record_date} onChange={e => setFollowUpForm({ ...followUpForm, record_date: e.target.value })} className="mt-1 text-xs" /></div>
-                <div><Label className="text-xs">حالة الالتزام</Label>
-                  <Select value={followUpForm.compliance_status} onValueChange={v => setFollowUpForm({ ...followUpForm, compliance_status: v })}>
-                    <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="on_track">ملتزم</SelectItem>
-                      <SelectItem value="delayed">متأخر</SelectItem>
-                      <SelectItem value="completed">مكتمل</SelectItem>
-                      <SelectItem value="not_started">لم يبدأ</SelectItem>
-                    </SelectContent></Select></div>
-                <div><Label className="text-xs">ملاحظات</Label>
-                  <Textarea value={followUpForm.notes} onChange={e => setFollowUpForm({ ...followUpForm, notes: e.target.value })} className="mt-1 text-xs" rows={2} /></div>
-              </div>
-              <div className="flex justify-end gap-2 mt-2">
-                <Button variant="outline" size="sm" onClick={() => setShowFollowUpForm(false)}>إلغاء</Button>
-                <Button size="sm" onClick={handleSaveFollowUp} disabled={!followUpForm.governorate || !followUpForm.course_name}>تسجيل</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={showNotifForm} onOpenChange={setShowNotifForm}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2"><Bell className="w-5 h-5 text-primary" />إعداد إشعار متابعة</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3 py-2">
-                <div><Label className="text-xs">المحافظة</Label>
-                  {governorates.length > 0 ? (
-                    <Select value={notifForm.governorate} onValueChange={v => setNotifForm({ ...notifForm, governorate: v })}>
-                      <SelectTrigger className="mt-1 text-xs"><SelectValue placeholder="اختر المحافظة" /></SelectTrigger>
-                      <SelectContent>{governorates.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select>
-                  ) : <Input value={notifForm.governorate} onChange={e => setNotifForm({ ...notifForm, governorate: e.target.value })} className="mt-1 text-xs" placeholder="أدخل اسم المحافظة" />}</div>
-                <div><Label className="text-xs">المستخدم المكلف</Label>
-                  <Select value={notifForm.assigned_to} onValueChange={v => setNotifForm({ ...notifForm, assigned_to: v })}>
-                    <SelectTrigger className="mt-1 text-xs"><SelectValue placeholder="اختر المستخدم" /></SelectTrigger>
-                    <SelectContent>{profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
-                <div><Label className="text-xs">التكرار</Label>
-                  <Select value={notifForm.frequency} onValueChange={v => setNotifForm({ ...notifForm, frequency: v })}>
-                    <SelectTrigger className="mt-1 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">يومي</SelectItem>
-                      <SelectItem value="weekly">أسبوعي</SelectItem>
-                      <SelectItem value="biweekly">نصف شهري</SelectItem>
-                      <SelectItem value="monthly">شهري</SelectItem>
-                    </SelectContent></Select></div>
-                <div><Label className="text-xs">ملاحظات</Label>
-                  <Textarea value={notifForm.notes} onChange={e => setNotifForm({ ...notifForm, notes: e.target.value })} className="mt-1 text-xs" rows={2} /></div>
-              </div>
-              <div className="flex justify-end gap-2 mt-2">
-                <Button variant="outline" size="sm" onClick={() => setShowNotifForm(false)}>إلغاء</Button>
-                <Button size="sm" onClick={handleSaveNotif} disabled={!notifForm.governorate || !notifForm.assigned_to}>حفظ</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showGovForm} onOpenChange={setShowGovForm}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{editingGov ? "تعديل بيانات المحافظة" : "إضافة بيانات محافظة"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+            <div>
+              <Label className="text-xs">المحافظة</Label>
+              <Input value={govForm.governorate} onChange={e => setGovForm({ ...govForm, governorate: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">اسم الدورة</Label>
+              <Input value={govForm.course_name} onChange={e => setGovForm({ ...govForm, course_name: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">المجال</Label>
+              <Input value={govForm.domain} onChange={e => setGovForm({ ...govForm, domain: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">الساعات</Label>
+              <Input type="number" value={govForm.course_hours} onChange={e => setGovForm({ ...govForm, course_hours: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label className="text-xs">المسار</Label>
+              <Select value={govForm.track} onValueChange={v => setGovForm({ ...govForm, track: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="المسار الأول">المسار الأول / القاعة A</SelectItem>
+                  <SelectItem value="المسار الثاني">المسار الثاني / القاعة B</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">عدد المرشحين</Label>
+              <Input type="number" value={govForm.nominees_count} onChange={e => setGovForm({ ...govForm, nominees_count: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label className="text-xs">تاريخ البدء المخطط</Label>
+              <Input type="date" value={govForm.planned_start_date} onChange={e => setGovForm({ ...govForm, planned_start_date: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">تاريخ الانتهاء المخطط</Label>
+              <Input type="date" value={govForm.planned_end_date} onChange={e => setGovForm({ ...govForm, planned_end_date: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">تاريخ البدء الفعلي</Label>
+              <Input type="date" value={govForm.actual_start_date} onChange={e => setGovForm({ ...govForm, actual_start_date: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">تاريخ الانتهاء الفعلي</Label>
+              <Input type="date" value={govForm.actual_end_date} onChange={e => setGovForm({ ...govForm, actual_end_date: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">الحالة</Label>
+              <Select value={govForm.status} onValueChange={v => setGovForm({ ...govForm, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planned">مخططة</SelectItem>
+                  <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
+                  <SelectItem value="completed">مكتملة</SelectItem>
+                  <SelectItem value="delayed">متأخرة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">الالتزام</Label>
+              <Select value={govForm.compliance} onValueChange={v => setGovForm({ ...govForm, compliance: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="not_started">لم يبدأ</SelectItem>
+                  <SelectItem value="on_track">ملتزم</SelectItem>
+                  <SelectItem value="delayed">متأخر</SelectItem>
+                  <SelectItem value="completed">مكتمل</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs">ملاحظات</Label>
+              <Textarea value={govForm.notes} onChange={e => setGovForm({ ...govForm, notes: e.target.value })} rows={2} />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowGovForm(false)}>إلغاء</Button>
+            <Button onClick={saveGov}>{editingGov ? "تحديث" : "إضافة"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showWeekForm} onOpenChange={setShowWeekForm}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{editingWeek ? "تعديل الأسبوع" : "إضافة أسبوع"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs">المحافظة</Label>
+              <Select value={weekForm.governorate} onValueChange={v => setWeekForm({ ...weekForm, governorate: v })}>
+                <SelectTrigger><SelectValue placeholder="اختر المحافظة" /></SelectTrigger>
+                <SelectContent>
+                  {ALL_19_GOVERNORATES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">رقم الأسبوع</Label>
+              <Input type="number" value={weekForm.week} onChange={e => setWeekForm({ ...weekForm, week: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label className="text-xs">تاريخ البدء</Label>
+              <Input type="date" value={weekForm.start_date} onChange={e => setWeekForm({ ...weekForm, start_date: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">تاريخ الانتهاء</Label>
+              <Input type="date" value={weekForm.end_date} onChange={e => setWeekForm({ ...weekForm, end_date: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">الوصف</Label>
+              <Input value={weekForm.label} onChange={e => setWeekForm({ ...weekForm, label: e.target.value })} placeholder="الأسبوع الأول" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowWeekForm(false)}>إلغاء</Button>
+            <Button onClick={saveWeek}>{editingWeek ? "تحديث" : "إضافة"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default TrainingPlan;
+}

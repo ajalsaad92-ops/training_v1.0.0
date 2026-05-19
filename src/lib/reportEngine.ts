@@ -10,7 +10,9 @@ export type ReportSourceKey =
   | "hr_requests"
   | "correspondence"
   | "audit_log"
-  | "notifications";
+  | "notifications"
+  | "governorate_training"
+  | "followup_records";
 
 export interface ReportColumn {
   key: string;
@@ -251,6 +253,45 @@ export const REPORT_SOURCES: Record<ReportSourceKey, ReportSource> = {
     ],
     defaultColumns: ["date", "message", "type", "is_read"],
   },
+  governorate_training: {
+    key: "governorate_training",
+    label: "تدريب المحافظات",
+    description: "الدورات التدريبية حسب المحافظة وحالة الالتزام",
+    dateField: "planned_start_date",
+    fetch: () => localDb.governorateTraining.getAll(),
+    columns: [
+      { key: "governorate", label: "المحافظة" },
+      { key: "course_name", label: "اسم الدورة" },
+      { key: "domain", label: "المجال" },
+      { key: "course_hours", label: "الساعات" },
+      { key: "track", label: "المسار" },
+      { key: "nominees_count", label: "المرشحون" },
+      { key: "planned_start_date", label: "البدء المخطط", format: fmtDate },
+      { key: "planned_end_date", label: "الانتهاء المخطط", format: fmtDate },
+      { key: "actual_start_date", label: "البدء الفعلي", format: fmtDate },
+      { key: "actual_end_date", label: "الانتهاء الفعلي", format: fmtDate },
+      { key: "status", label: "الحالة", format: tr },
+      { key: "compliance", label: "الالتزام", format: tr },
+      { key: "notes", label: "ملاحظات" },
+    ],
+    defaultColumns: ["governorate", "course_name", "course_hours", "planned_start_date", "status", "compliance"],
+  },
+  followup_records: {
+    key: "followup_records",
+    label: "سجلات المتابعة",
+    description: "متابعة التزام المحافظات بالجدول التدريبي",
+    dateField: "record_date",
+    fetch: () => localDb.followUpRecords.getAll(),
+    columns: [
+      { key: "governorate", label: "المحافظة" },
+      { key: "course_name", label: "الدورة" },
+      { key: "record_date", label: "تاريخ التسجيل", format: fmtDate },
+      { key: "compliance_status", label: "الالتزام", format: tr },
+      { key: "notes", label: "ملاحظات" },
+      { key: "recorded_by_name", label: "سجل بواسطة" },
+    ],
+    defaultColumns: ["governorate", "course_name", "record_date", "compliance_status", "notes"],
+  },
 };
 
 export const SOURCE_LIST = Object.values(REPORT_SOURCES);
@@ -317,6 +358,7 @@ export function computeExecutiveKPIs(): {
   courseStatus: { name: string; value: number }[];
   taskStatus: { name: string; value: number }[];
   hrStatus: { name: string; value: number }[];
+  govCompliance: { name: string; value: number }[];
 } {
   const employees = localDb.employees.getAll();
   const courses = localDb.courses.getAll();
@@ -335,6 +377,12 @@ export function computeExecutiveKPIs(): {
   const pendingCorr = corr.filter((c: Record<string, unknown>) => c.status === "in_progress").length;
   const certs = trainees.filter((t: Record<string, unknown>) => t.certificate_issued).length;
 
+  const govTraining = localDb.governorateTraining.getAll();
+  const govTotal = govTraining.length;
+  const govCompleted = govTraining.filter((g: Record<string, unknown>) => g.status === "completed").length;
+  const govDelayed = govTraining.filter((g: Record<string, unknown>) => g.compliance === "delayed").length;
+  const govComplianceRate = govTotal > 0 ? Math.round(govTraining.filter((g: Record<string, unknown>) => g.compliance === "on_track" || g.compliance === "completed").length / govTotal * 100) : 0;
+
   const kpis: KPI[] = [
     { label: "إجمالي الموظفين", value: employees.length },
     { label: "الدورات النشطة", value: activeCourses, hint: `إجمالي ${courses.length}` },
@@ -346,6 +394,8 @@ export function computeExecutiveKPIs(): {
     { label: "مراسلات قيد التنفيذ", value: pendingCorr },
     { label: "الميزانية المعتمدة (ر.س)", value: totalBudget.toLocaleString("ar-SA") },
     { label: "التكلفة الفعلية (ر.س)", value: actualCost.toLocaleString("ar-SA"), hint: totalBudget > 0 ? `${Math.round((actualCost / totalBudget) * 100)}%` : "" },
+    { label: "دورات المحافظات", value: govTotal, hint: `${govCompleted} مكتملة` },
+    { label: "محافظات متأخرة", value: govDelayed, hint: `التزام ${govComplianceRate}%` },
   ];
 
   const byDeptMap: Record<string, number> = {};
@@ -364,11 +414,21 @@ export function computeExecutiveKPIs(): {
     return Object.entries(m).map(([name, value]) => ({ name, value }));
   };
 
+  const govComplianceMap: Record<string, number> = {};
+  govTraining.forEach((g: Record<string, unknown>) => {
+    const gov = String(g.governorate || "غير محدد");
+    if (g.compliance === "on_track" || g.compliance === "completed") {
+      govComplianceMap[gov] = (govComplianceMap[gov] || 0) + 1;
+    }
+  });
+  const govCompliance = Object.entries(govComplianceMap).map(([name, value]) => ({ name, value }));
+
   return {
     kpis,
     byDept,
     courseStatus: groupBy(courses, "status"),
     taskStatus: groupBy(tasks, "status"),
     hrStatus: groupBy(hr, "approval_status"),
+    govCompliance,
   };
 }
