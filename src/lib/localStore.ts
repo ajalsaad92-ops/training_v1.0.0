@@ -1,4 +1,15 @@
 import { debouncedPush, getServerAvailable } from "@/lib/serverSync";
+import {
+  SEED_EMPLOYEES, SEED_PROFILES, SEED_USER_ACCOUNTS, SEED_CURRICULUM,
+  SEED_COURSES, SEED_TRAINEES, SEED_HR, SEED_CORRESPONDENCE, SEED_TASKS,
+  SEED_GOV_TRAINING, SEED_FOLLOWUP_RECORDS, SEED_FOLLOWUP_NOTIFS,
+  SEED_NOTIFICATIONS, SEED_AUDIT_LOG, SEED_WEEK_SCHEDULES,
+} from "@/lib/seedData";
+
+const SEED_VERSION_KEY = "tms_seed_version";
+const SEED_VERSION = "2026-05-19-v1";
+
+
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type Employee = any;
