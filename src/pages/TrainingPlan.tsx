@@ -432,7 +432,7 @@ const TrainingPlan = () => {
         sections={[{ id: "tabs_nav", label: "تبويبات الخطة" }, { id: "data_content", label: "محتوى البيانات" }]}
         exportData={exportData} />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1.5 no-print">
           {tabItems.map(tab => (
             <TabsTrigger key={tab.value} value={tab.value}
@@ -584,7 +584,7 @@ const TrainingPlan = () => {
             </div>
           </div>
 
-          <Dialog open={showGovForm} onOpenChange={setShowGovForm} dir="rtl">
+          <Dialog open={showGovForm} onOpenChange={setShowGovForm}>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
@@ -781,7 +781,7 @@ const TrainingPlan = () => {
             )}
           </div>
 
-          <Dialog open={showFollowUpForm} onOpenChange={setShowFollowUpForm} dir="rtl">
+          <Dialog open={showFollowUpForm} onOpenChange={setShowFollowUpForm}>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" />تسجيل متابعة</DialogTitle>
@@ -817,7 +817,7 @@ const TrainingPlan = () => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showNotifForm} onOpenChange={setShowNotifForm} dir="rtl">
+          <Dialog open={showNotifForm} onOpenChange={setShowNotifForm}>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2"><Bell className="w-5 h-5 text-primary" />إعداد إشعار متابعة</DialogTitle>
