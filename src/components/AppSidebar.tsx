@@ -5,7 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import {
   LayoutDashboard, Users, BookOpen, Archive, GraduationCap, ClipboardCheck,
   BarChart3, Settings, ChevronRight, ChevronLeft, Sun, Moon,
-  Shield, ListTodo, FileText,
+  Shield, ListTodo, FileText, CalendarDays,
 } from "lucide-react";
 
 const allNavItems = [
@@ -16,6 +16,7 @@ const allNavItems = [
   { title: "المناهج والعروض", path: "/curriculum", icon: BookOpen, perm: "view_curriculum" },
   { title: "الإعداد والأرشيف", path: "/correspondence", icon: Archive, perm: "view_correspondence" },
   { title: "التنفيذ التدريبي", path: "/courses", icon: GraduationCap, perm: "view_courses" },
+  { title: "الخطة التدريبية", path: "/training-plan", icon: CalendarDays, perm: "view_training_plan" },
   { title: "التقييم والمتابعة", path: "/evaluation", icon: ClipboardCheck, perm: "view_evaluation" },
   { title: "التقارير", path: "/reports", icon: BarChart3, perm: "view_reports" },
   { title: "سجل النشاط", path: "/activity-log", icon: FileText, perm: "view_activity_log" },

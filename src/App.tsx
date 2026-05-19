@@ -24,6 +24,7 @@ const Evaluation = lazy(() => import("@/pages/Evaluation"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Tasks = lazy(() => import("@/pages/Tasks"));
+const TrainingPlan = lazy(() => import("@/pages/TrainingPlan"));
 const ActivityLog = lazy(() => import("@/pages/ActivityLog"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -83,6 +84,7 @@ const AppRoutes = () => {
         <Route path="hr" element={<ProtectedRoute requireRole={has("view_hr")}><Suspense fallback={<PageLoader />}><HRAttendance /></Suspense></ProtectedRoute>} />
         <Route path="employees" element={<ProtectedRoute requireRole={has("view_employees")}><Suspense fallback={<PageLoader />}><Employees /></Suspense></ProtectedRoute>} />
         <Route path="courses" element={<ProtectedRoute requireRole={has("view_courses")}><Suspense fallback={<PageLoader />}><Courses /></Suspense></ProtectedRoute>} />
+        <Route path="training-plan" element={<ProtectedRoute requireRole={has("view_training_plan")}><Suspense fallback={<PageLoader />}><TrainingPlan /></Suspense></ProtectedRoute>} />
         <Route path="correspondence" element={<ProtectedRoute requireRole={has("view_correspondence")}><Suspense fallback={<PageLoader />}><Correspondence /></Suspense></ProtectedRoute>} />
         <Route path="evaluation" element={<ProtectedRoute requireRole={has("view_evaluation")}><Suspense fallback={<PageLoader />}><Evaluation /></Suspense></ProtectedRoute>} />
         <Route path="reports" element={<ProtectedRoute requireRole={has("view_reports")}><Suspense fallback={<PageLoader />}><Reports /></Suspense></ProtectedRoute>} />
