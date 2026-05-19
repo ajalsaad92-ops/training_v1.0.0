@@ -108,6 +108,11 @@ export const ALL_PERMISSIONS: PermissionDef[] = [
   { key: "view_training_plan", label: "عرض الخطة التدريبية", description: "الدخول لصفحة الخطة التدريبية الممتدة ورؤية الجداول والبيانات", example: "المشرف يرى الخطة الأسبوعية وتوزيع الدورات", category: "training_plan" },
   { key: "export_training_plan", label: "تصدير الخطة التدريبية", description: "تصدير بيانات الخطة التدريبية إلى Excel", example: "المشرف يصدّر الخطة الأسبوعية لملف Excel", category: "training_plan" },
   { key: "print_training_plan", label: "طباعة الخطة التدريبية", description: "استخدام زر الطباعة في صفحة الخطة التدريبية", example: "المشرف يطبع الخطة الأسبوعية", category: "training_plan" },
+  { key: "import_training_plan", label: "استيراد خطة تدريبية من Excel", description: "استيراد بيانات الخطة التدريبية أو بيانات المحافظات من ملف Excel", example: "المشرف يستورد بيانات الدورات من ملف Excel", category: "training_plan" },
+  { key: "add_governorate_training", label: "إضافة بيانات محافظة", description: "إضافة دورة تدريبية مرتبطة بمحافظة يدوياً", example: "المشرف يضيف دورة تقنية SMART لمحافظة بابل", category: "training_plan" },
+  { key: "edit_governorate_training", label: "تعديل بيانات محافظة", description: "تعديل أو حذف بيانات الدورات المرتبطة بالمحافظات", example: "المشرف يعدّل تاريخ بدء دورة في بغداد", category: "training_plan" },
+  { key: "record_followup", label: "تسجيل متابعة", description: "تسجيل حالة الالتزام والملاحظات لكل محافظة", example: "رئيس الشعبة يسجل أن بابل ملتزمة بالجدول", category: "training_plan" },
+  { key: "manage_followup", label: "إدارة إشعارات المتابعة", description: "تخصيص إشعارات المتابعة وتكليف أفراد بالمتابعة (للمدير والأدمن)", example: "المدير يكلف أحمد بمتابعة دورات بابل أسبوعياً", category: "training_plan" },
 
   // ─── التقييم والمتابعة ───
   { key: "view_evaluation", label: "عرض صفحة التقييم", description: "الدخول لصفحة التقييم والمتابعة ورؤية أنواع التقييم", example: "المشرف يرى نسبة إنجاز التقييمات", category: "evaluation" },
@@ -144,6 +149,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     "view_tasks", "create_task", "assign_task", "advance_task_stage", "handover_task", "approve_task", "comment_task", "view_other_units_tasks", "export_tasks", "print_tasks",
     "view_curriculum", "export_curriculum", "print_curriculum",
     "view_training_plan", "export_training_plan", "print_training_plan",
+    "import_training_plan", "add_governorate_training", "edit_governorate_training",
+    "record_followup", "manage_followup",
     "view_activity_log", "export_activity_log", "print_activity_log",
   ],
   prep_unit_head: [
@@ -151,6 +158,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     "view_hr", "view_daily_situation", "create_leave_request", "approve_hr_unit", "reject_hr", "undo_hr_decision", "export_hr", "print_hr",
     "view_tasks", "create_task", "assign_task", "advance_task_stage", "handover_task", "approve_task", "comment_task", "export_tasks", "print_tasks",
     "view_training_plan", "export_training_plan", "print_training_plan",
+    "import_training_plan", "add_governorate_training", "edit_governorate_training",
+    "record_followup", "manage_followup",
     "view_activity_log",
   ],
   curriculum_unit_head: [
@@ -159,6 +168,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     "view_tasks", "export_tasks", "print_tasks",
     "view_curriculum", "add_curriculum", "edit_curriculum", "upload_curriculum_file", "upload_presentation", "import_curriculum_excel", "export_curriculum", "print_curriculum",
     "view_training_plan", "export_training_plan", "print_training_plan",
+    "import_training_plan", "add_governorate_training", "edit_governorate_training",
+    "record_followup",
     "view_activity_log",
   ],
   trainer: [
@@ -167,20 +178,21 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     "view_tasks", "start_task", "complete_task",
     "view_courses",
     "view_training_plan",
-  ],
-  supervisor: [
+    "record_followup",
     "view_dashboard", "view_tasks_section", "view_attendance_section", "print_dashboard",
     "view_hr", "view_daily_situation", "create_leave_request",
     "view_tasks", "start_task", "complete_task",
     "view_courses",
     "view_training_plan",
     "view_evaluation",
+    "record_followup",
   ],
   individual: [
     "view_dashboard", "view_attendance_section", "view_pending_requests_section", "view_tasks_section", "print_dashboard",
     "view_hr", "view_daily_situation", "create_leave_request", "cancel_own_request", "export_hr", "print_hr",
     "view_tasks", "start_task", "complete_task", "export_tasks", "print_tasks",
     "view_training_plan",
+    "record_followup",
   ],
 };
 

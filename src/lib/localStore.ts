@@ -12,6 +12,9 @@ export type Notification = any;
 export type Task = any;
 export type TaskHandover = any;
 export type TaskComment = any;
+export type GovernorateTraining = any;
+export type FollowUpRecord = any;
+export type FollowUpNotification = any;
 
 export interface UserProfile {
   id: string;
@@ -137,6 +140,39 @@ const defaultTaskComments: TaskComment[] = [
   { id: "cmt-9", task_id: "tsk-4", author_id: "emp-7", author_name: "عبدالرحمن فهد الشمري", recipient_id: "emp-3", recipient_name: "خالد عبدالله السعيد", message: "جاري الإصدار، سأرسل الكشف خلال ساعتين.", created_at: "2026-02-15T09:10:00Z" },
 ];
 
+const defaultGovernorateTraining: GovernorateTraining[] = [
+  { id: "gt-1", governorate: "بابل", course_name: "دورة تقنية SMART", domain: "تقنية المعلومات", course_hours: 10, track: "المسار الأول", nominees_count: 36, planned_start_date: "2026-03-01", planned_end_date: "2026-03-05", actual_start_date: "2026-03-01", actual_end_date: "2026-03-05", status: "completed", compliance: "completed", notes: "", created_by: "emp-1", created_at: "2026-03-01T08:00:00Z", updated_at: "2026-03-05T14:00:00Z" },
+  { id: "gt-2", governorate: "بابل", course_name: "دورة إعداد التقارير", domain: "إدارية", course_hours: 10, track: "المسار الثاني", nominees_count: 20, planned_start_date: "2026-03-08", planned_end_date: "2026-03-12", actual_start_date: "2026-03-09", actual_end_date: "2026-03-13", status: "completed", compliance: "delayed", notes: "تأخر يوم واحد", created_by: "emp-1", created_at: "2026-03-08T08:00:00Z", updated_at: "2026-03-13T14:00:00Z" },
+  { id: "gt-3", governorate: "بابل", course_name: "دورة المخاطبات الإدارية", domain: "إدارية", course_hours: 5, track: "المسار الأول", nominees_count: 15, planned_start_date: "2026-05-10", planned_end_date: "2026-05-14", actual_start_date: "2026-05-10", actual_end_date: null, status: "in_progress", compliance: "on_track", notes: "", created_by: "emp-2", created_at: "2026-05-10T08:00:00Z", updated_at: "2026-05-12T10:00:00Z" },
+  { id: "gt-4", governorate: "بغداد", course_name: "دورة أخلاقيات العمل", domain: "إدارية", course_hours: 9, track: "المسار الأول", nominees_count: 25, planned_start_date: "2026-03-15", planned_end_date: "2026-03-19", actual_start_date: "2026-03-15", actual_end_date: "2026-03-19", status: "completed", compliance: "on_track", notes: "", created_by: "emp-1", created_at: "2026-03-15T08:00:00Z", updated_at: "2026-03-19T14:00:00Z" },
+  { id: "gt-5", governorate: "بغداد", course_name: "دورة الإدارة الإلكترونية / الوورد", domain: "تقنية المعلومات", course_hours: 15, track: "المسار الثاني", nominees_count: 30, planned_start_date: "2026-04-01", planned_end_date: "2026-04-08", actual_start_date: "2026-04-03", actual_end_date: "2026-04-10", status: "completed", compliance: "delayed", notes: "تأخر بدء الدورة يومين", created_by: "emp-1", created_at: "2026-04-01T08:00:00Z", updated_at: "2026-04-10T14:00:00Z" },
+  { id: "gt-6", governorate: "بغداد", course_name: "دورة القيادة التحويلية", domain: "قيادية", course_hours: 10, track: "المسار الأول", nominees_count: 22, planned_start_date: "2026-05-18", planned_end_date: "2026-05-22", actual_start_date: null, actual_end_date: null, status: "delayed", compliance: "delayed", notes: "لم يبدأ بعد رغم حلول الموعد", created_by: "emp-2", created_at: "2026-05-15T08:00:00Z", updated_at: "2026-05-18T08:00:00Z" },
+  { id: "gt-7", governorate: "كربلاء", course_name: "دورة الحفظ والأرشفة", domain: "إدارية", course_hours: 6, track: "المسار الأول", nominees_count: 12, planned_start_date: "2026-03-22", planned_end_date: "2026-03-25", actual_start_date: "2026-03-22", actual_end_date: "2026-03-25", status: "completed", compliance: "on_track", notes: "", created_by: "emp-3", created_at: "2026-03-22T08:00:00Z", updated_at: "2026-03-25T14:00:00Z" },
+  { id: "gt-8", governorate: "كربلاء", course_name: "دورة مهارات التواصل", domain: "إدارية", course_hours: 8, track: "المسار الثاني", nominees_count: 18, planned_start_date: "2026-04-12", planned_end_date: "2026-04-16", actual_start_date: "2026-04-12", actual_end_date: "2026-04-16", status: "completed", compliance: "on_track", notes: "", created_by: "emp-3", created_at: "2026-04-12T08:00:00Z", updated_at: "2026-04-16T14:00:00Z" },
+  { id: "gt-9", governorate: "كربلاء", course_name: "دورة بناء الفريق", domain: "قيادية", course_hours: 8, track: "المسار الأول", nominees_count: 15, planned_start_date: "2026-06-01", planned_end_date: "2026-06-05", actual_start_date: null, actual_end_date: null, status: "planned", compliance: "not_started", notes: "", created_by: "emp-3", created_at: "2026-05-15T08:00:00Z", updated_at: "2026-05-15T08:00:00Z" },
+  { id: "gt-10", governorate: "النجف", course_name: "دورة الإدارة الإلكترونية / Power Point", domain: "تقنية المعلومات", course_hours: 15, track: "المسار الأول", nominees_count: 28, planned_start_date: "2026-04-06", planned_end_date: "2026-04-13", actual_start_date: "2026-04-06", actual_end_date: "2026-04-13", status: "completed", compliance: "on_track", notes: "", created_by: "emp-1", created_at: "2026-04-06T08:00:00Z", updated_at: "2026-04-13T14:00:00Z" },
+  { id: "gt-11", governorate: "النجف", course_name: "دورة تنمية الذكاء العاطفي", domain: "إدارية", course_hours: 6, track: "المسار الثاني", nominees_count: 20, planned_start_date: "2026-05-04", planned_end_date: "2026-05-07", actual_start_date: "2026-05-05", actual_end_date: null, status: "in_progress", compliance: "delayed", notes: "تأخر يوم بسبب ظروف الطقس", created_by: "emp-2", created_at: "2026-05-04T08:00:00Z", updated_at: "2026-05-06T10:00:00Z" },
+  { id: "gt-12", governorate: "القادسية", course_name: "دورة إدارة الوقت", domain: "إدارية", course_hours: 5, track: "المسار الأول", nominees_count: 14, planned_start_date: "2026-03-28", planned_end_date: "2026-03-31", actual_start_date: "2026-03-28", actual_end_date: "2026-03-31", status: "completed", compliance: "on_track", notes: "", created_by: "emp-3", created_at: "2026-03-28T08:00:00Z", updated_at: "2026-03-31T14:00:00Z" },
+  { id: "gt-13", governorate: "القادسية", course_name: "دورة الإدارة الإلكترونية / Excel", domain: "تقنية المعلومات", course_hours: 15, track: "المسار الثاني", nominees_count: 32, planned_start_date: "2026-05-11", planned_end_date: "2026-05-18", actual_start_date: "2026-05-11", actual_end_date: null, status: "in_progress", compliance: "on_track", notes: "", created_by: "emp-1", created_at: "2026-05-11T08:00:00Z", updated_at: "2026-05-15T10:00:00Z" },
+  { id: "gt-14", governorate: "القادسية", course_name: "دورة تحليل المشكلات", domain: "إدارية", course_hours: 6, track: "المسار الأول", nominees_count: 12, planned_start_date: "2026-06-08", planned_end_date: "2026-06-11", actual_start_date: null, actual_end_date: null, status: "planned", compliance: "not_started", notes: "", created_by: "emp-3", created_at: "2026-05-20T08:00:00Z", updated_at: "2026-05-20T08:00:00Z" },
+];
+
+const defaultFollowUpRecords: FollowUpRecord[] = [
+  { id: "fur-1", governorate_training_id: "gt-1", governorate: "بابل", course_name: "دورة تقنية SMART", record_date: "2026-03-03", compliance_status: "on_track", notes: "سير الدورة طبيعي", recorded_by: "emp-3", recorded_by_name: "خالد عبدالله السعيد", created_at: "2026-03-03T10:00:00Z" },
+  { id: "fur-2", governorate_training_id: "gt-2", governorate: "بابل", course_name: "دورة إعداد التقارير", record_date: "2026-03-10", compliance_status: "delayed", notes: "تأخر يوم بسبب عطلة رسمية", recorded_by: "emp-3", recorded_by_name: "خالد عبدالله السعيد", created_at: "2026-03-10T10:00:00Z" },
+  { id: "fur-3", governorate_training_id: "gt-5", governorate: "بغداد", course_name: "دورة الإدارة الإلكترونية / الوورد", record_date: "2026-04-05", compliance_status: "delayed", notes: "تأخر بدء الدورة يومين لعدم جاهزية القاعة", recorded_by: "emp-7", recorded_by_name: "عبدالرحمن فهد الشمري", created_at: "2026-04-05T10:00:00Z" },
+  { id: "fur-4", governorate_training_id: "gt-6", governorate: "بغداد", course_name: "دورة القيادة التحويلية", record_date: "2026-05-18", compliance_status: "delayed", notes: "لم يبدأ بعد رغم حلول الموعد، ينتظر تأكيد المدرب", recorded_by: "emp-7", recorded_by_name: "عبدالرحمن فهد الشمري", created_at: "2026-05-18T10:00:00Z" },
+  { id: "fur-5", governorate_training_id: "gt-11", governorate: "النجف", course_name: "دورة تنمية الذكاء العاطفي", record_date: "2026-05-05", compliance_status: "delayed", notes: "تأخر يوم بسبب ظروف الطقس", recorded_by: "emp-3", recorded_by_name: "خالد عبدالله السعيد", created_at: "2026-05-05T10:00:00Z" },
+  { id: "fur-6", governorate_training_id: "gt-13", governorate: "القادسية", course_name: "دورة الإدارة الإلكترونية / Excel", record_date: "2026-05-13", compliance_status: "on_track", notes: "الدورة تسير حسب الجدول", recorded_by: "emp-3", recorded_by_name: "خالد عبدالله السعيد", created_at: "2026-05-13T10:00:00Z" },
+];
+
+const defaultFollowUpNotifications: FollowUpNotification[] = [
+  { id: "fun-1", governorate: "بابل", assigned_to: "emp-3", assigned_to_name: "خالد عبدالله السعيد", assigned_by: "emp-1", assigned_by_name: "أحمد محمد العلي", frequency: "weekly", active: true, notes: "متابعة أسبوعية لدورات بابل", created_at: "2026-03-01T08:00:00Z" },
+  { id: "fun-2", governorate: "بغداد", assigned_to: "emp-7", assigned_to_name: "عبدالرحمن فهد الشمري", assigned_by: "emp-2", assigned_by_name: "فاطمة حسن الأمير", frequency: "weekly", active: true, notes: "متابعة أسبوعية لدورات بغداد", created_at: "2026-03-01T08:00:00Z" },
+  { id: "fun-3", governorate: "كربلاء", assigned_to: "emp-5", assigned_to_name: "محمد علي الزهراني", assigned_by: "emp-1", assigned_by_name: "أحمد محمد العلي", frequency: "biweekly", active: true, notes: "متابعة نصف شهرية لكربلاء", created_at: "2026-04-01T08:00:00Z" },
+  { id: "fun-4", governorate: "النجف", assigned_to: "emp-7", assigned_to_name: "عبدالرحمن فهد الشمري", assigned_by: "emp-2", assigned_by_name: "فاطمة حسن الأمير", frequency: "monthly", active: true, notes: "متابعة شهرية للنجف", created_at: "2026-04-01T08:00:00Z" },
+];
+
 const defaultProfiles: UserProfile[] = [
   { id: "emp-1", name: "أحمد محمد العلي", department: "شعبة الإعداد والتدريب", section: "شعبة الإعداد والتدريب", position: "مدير النظام", phone: "0501234567", roles: ["admin", "super_user"] },
   { id: "emp-2", name: "فاطمة حسن الأمير", department: "شعبة الإعداد والتدريب", section: "شعبة الإعداد والتدريب", position: "مدير القسم", phone: "0507654321", roles: ["dept_manager", "training_admin"] },
@@ -173,6 +209,9 @@ interface StoreData {
   auditLog: AuditEntry[];
   profiles: UserProfile[];
   userAccounts: UserAccount[];
+  governorateTraining: GovernorateTraining[];
+  followUpRecords: FollowUpRecord[];
+  followUpNotifications: FollowUpNotification[];
 }
 
 const getDefaultStore = (): StoreData => ({
@@ -189,6 +228,9 @@ const getDefaultStore = (): StoreData => ({
   auditLog: defaultAuditLog,
   profiles: defaultProfiles,
   userAccounts: defaultUserAccounts,
+  governorateTraining: defaultGovernorateTraining,
+  followUpRecords: defaultFollowUpRecords,
+  followUpNotifications: defaultFollowUpNotifications,
 });
 
 let store: StoreData | null = null;
@@ -346,5 +388,21 @@ export const localDb = {
       saveStore();
       return s.userAccounts[idx];
     },
+  },
+  governorateTraining: {
+    getAll: () => getAll<GovernorateTraining>("governorateTraining"),
+    insert: (g: Partial<GovernorateTraining>) => insertItem<GovernorateTraining>("governorateTraining", { created_at: now(), updated_at: now(), ...g } as GovernorateTraining),
+    update: (id: string, u: Partial<GovernorateTraining>) => updateItem<GovernorateTraining>("governorateTraining", id, { updated_at: now(), ...u } as Partial<GovernorateTraining>),
+    delete: (id: string) => deleteItem<GovernorateTraining>("governorateTraining", id),
+  },
+  followUpRecords: {
+    getAll: () => getAll<FollowUpRecord>("followUpRecords"),
+    insert: (r: Partial<FollowUpRecord>) => insertItem<FollowUpRecord>("followUpRecords", { created_at: now(), ...r } as FollowUpRecord),
+  },
+  followUpNotifications: {
+    getAll: () => getAll<FollowUpNotification>("followUpNotifications"),
+    insert: (n: Partial<FollowUpNotification>) => insertItem<FollowUpNotification>("followUpNotifications", { created_at: now(), ...n } as FollowUpNotification),
+    update: (id: string, u: Partial<FollowUpNotification>) => updateItem<FollowUpNotification>("followUpNotifications", id, u),
+    delete: (id: string) => deleteItem<FollowUpNotification>("followUpNotifications", id),
   },
 };
