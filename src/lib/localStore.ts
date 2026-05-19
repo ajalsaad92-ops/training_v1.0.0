@@ -264,7 +264,12 @@ export function resetStore() {
 
 // === CRUD helpers ===
 function getAll<T>(key: keyof StoreData): T[] {
-  return getStore()[key] as T[];
+  const s = getStore();
+  if (!Array.isArray(s[key])) {
+    (s as Record<string, unknown>)[key as string] = [];
+    saveStore();
+  }
+  return s[key] as T[];
 }
 
 function insertItem<T extends { id: string }>(key: keyof StoreData, item: Omit<T, "id"> & { id?: string }): T {
