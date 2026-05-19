@@ -172,7 +172,7 @@ const Evaluation = () => {
           : courses.map(c => ({ الدورة: c.title, المدرب: c.trainer || "", الحالة: c.status, المتدربون: c.trainees?.length || 0, البداية: c.start_date, النهاية: c.end_date }))
       })} />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/50 p-1.5 no-print">
           {tabItems.map(tab => (
             <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 py-1.5">
@@ -353,7 +353,7 @@ const Evaluation = () => {
             )}
           </div>
 
-          <Dialog open={showFollowUpForm} onOpenChange={setShowFollowUpForm} dir="rtl">
+          <Dialog open={showFollowUpForm} onOpenChange={setShowFollowUpForm}>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" />تسجيل متابعة</DialogTitle>
@@ -388,7 +388,7 @@ const Evaluation = () => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showNotifForm} onOpenChange={setShowNotifForm} dir="rtl">
+          <Dialog open={showNotifForm} onOpenChange={setShowNotifForm}>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2"><Bell className="w-5 h-5 text-primary" />إعداد إشعار متابعة</DialogTitle>
